@@ -1,0 +1,4 @@
+name,lecture_number,duration_time,video_url,document_url,description
+Bài 1: Tổng quan về lập trình,1,45,https://youtube.com/watch?v=example1,https://drive.google.com/file1,Giới thiệu các khái niệm cơ bản về lập trình và tư duy giải quyết vấn đề.
+Bài 2: Cài đặt môi trường,2,30,https://youtube.com/watch?v=example2,,Hướng dẫn chi tiết cách cài đặt các công cụ cần thiết để bắt đầu học.
+Bài 3: Biến và Kiểu dữ liệu,3,60,https://youtube.com/watch?v=example3,https://drive.google.com/file3,Tìm hiểu về cách khai báo biến và các kiểu dữ liệu cơ bản trong ngôn ngữ.
