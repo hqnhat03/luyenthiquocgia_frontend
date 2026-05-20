@@ -694,6 +694,7 @@ export function TeacherDrawer({
                                     accept="image/*"
                                     onChange={handleFileChange}
                                 />
+                                </div>
                             </div>
 
                             <Separator />

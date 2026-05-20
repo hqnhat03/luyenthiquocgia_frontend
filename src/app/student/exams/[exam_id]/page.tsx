@@ -1,8 +1,8 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
+import { studentAxios as api } from '@/api/student';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,10 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
-import { studentAxios as api } from '@/api/student';
 import { AxiosError } from 'axios';
 import {
   CheckCircle2,
   ChevronLeft,
-  ChevronRight,
   LogOut,
   Menu,
   Send,

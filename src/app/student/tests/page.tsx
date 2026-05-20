@@ -1,5 +1,6 @@
 'use client';
 
+import { studentAxios as api } from '@/api/student';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +18,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { studentAxios as api } from '@/api/student';
 import { AxiosError } from 'axios';
 import { format, isAfter, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -179,7 +179,6 @@ export default function ExamsPage() {
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalTests, setTotalTests] = useState(0);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedTestId, setSelectedTestId] = useState<number | null>(null);
@@ -201,7 +200,6 @@ export default function ExamsPage() {
                     const resData = response.data.data;
                     setExams(resData.data || []);
                     setTotalPages(resData.last_page || 1);
-                    setTotalTests(resData.total || 0);
                 } else {
                     setError(response.data?.message || 'Không thể tải danh sách bài kiểm tra');
                 }

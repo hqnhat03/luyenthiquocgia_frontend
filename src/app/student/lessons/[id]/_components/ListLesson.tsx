@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { studentAxios } from "@/api/student";
-import { PlayCircle, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronRight, Clock, PlayCircle } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface ListLessonProps {
   classId: number;
