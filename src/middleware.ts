@@ -83,7 +83,7 @@ export function middleware(request: NextRequest) {
     return handleProtectedDomain('/teacher');
   }
 
-  if (currentHost === studentDomain) {
+  if (currentHost === studentDomain || currentHost === baseDomain) {
     // Nếu truy cập domain student mà có prefix /student thì redirect bỏ prefix đó đi
     if (pathname === '/student' || pathname.startsWith('/student/')) {
       const newPathname = pathname.replace(/^\/student/, '') || '/';
