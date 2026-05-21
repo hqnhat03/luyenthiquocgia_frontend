@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
 
   // Define domains from env
   const baseDomain = process.env.NEXT_PUBLIC_DOMAIN;
-  const studentDomain = `www.${baseDomain}`;
+  const studentDomain = `${baseDomain}`;
   const adminDomain = `quantrivien.${baseDomain}`;
   const teacherDomain = `giaovien.${baseDomain}`;
   const guardianDomain = `phuhuynh.${baseDomain}`;
