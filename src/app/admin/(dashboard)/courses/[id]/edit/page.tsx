@@ -181,13 +181,13 @@ export default function EditCoursePage() {
 
                     // Map status integer to string "draft" | "published" | "archived"
                     let statusStr: "draft" | "published" | "archived" = "draft";
-                    if (cData.status === 2) statusStr = "published";
-                    else if (cData.status === 1) statusStr = "archived";
+                    if (Number(cData.status) === 2) statusStr = "published";
+                    else if (Number(cData.status) === 1) statusStr = "archived";
 
                     // Map target_student integer to string "student" | "teacher" | "all"
                     let targetStudentStr: "student" | "teacher" | "all" = "student";
-                    if (cData.target_student === 1) targetStudentStr = "teacher";
-                    else if (cData.target_student === 2) targetStudentStr = "all";
+                    if (Number(cData.target_student) === 1) targetStudentStr = "teacher";
+                    else if (Number(cData.target_student) === 2) targetStudentStr = "all";
 
                     form.reset({
                         name: cData.name || "",

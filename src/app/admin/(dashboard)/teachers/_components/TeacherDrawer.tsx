@@ -68,9 +68,7 @@ const teacherSchema = z.object({
     expertise: z.string().optional(),
     experience: z.string().min(1, { message: "Vui lòng nhập kinh nghiệm" }),
     target_student: z.string().min(1, { message: "Vui lòng chọn đối tượng học sinh" }),
-    status: z.enum(["active", "inactive"], {
-        error: "Vui lòng chọn trạng thái",
-    }),
+    status: z.union([z.literal("1"), z.literal("0")]),
     date_of_birth: z.string().min(1, { message: "Vui lòng chọn ngày sinh" }),
     avatar: z.string().optional().nullable(),
     bio: z.string().optional().nullable(),
@@ -97,23 +95,23 @@ const genderOptions = [
 
 const statusOptions = [
     {
-        value: "active",
+        value: "1",
         label: "Hoạt động",
         activeClass:
             "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300",
     },
     {
-        value: "inactive",
-        label: "Bị khóa",
+        value: "0",
+        label: "Bị chặn",
         activeClass:
             "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300",
     },
 ]
 
 const targetStudentOptions = [
-    { value: "all", label: "Tất cả", icon: Globe },
-    { value: "student", label: "Học sinh", icon: GraduationCap },
-    { value: "employee", label: "Nhân viên", icon: Briefcase },
+    { value: "2", label: "Tất cả", icon: Globe },
+    { value: "0", label: "Học sinh", icon: GraduationCap },
+    { value: "1", label: "Nhân viên", icon: Briefcase },
 ]
 
 function getLabel(options: { value: string; label: string }[], val?: string) {
@@ -177,8 +175,8 @@ export function TeacherDrawer({
             specialization: [],
             expertise: "",
             experience: "",
-            target_student: "all",
-            status: "active",
+            target_student: "2",
+            status: "1",
             date_of_birth: "",
             avatar: "",
             bio: "",
@@ -235,10 +233,9 @@ export function TeacherDrawer({
             api.get(endpoint, { params: { id: teacher.id } })
                 .then((res) => {
                     const data = res.data?.data || res.data
-                    
-                    let ts = "all"
-                    if (data.target_student === 0) ts = "student"
-                    else if (data.target_student === 1) ts = "employee"
+
+                    // DEBUG: log raw status value from API
+                    console.log("[TeacherDrawer] raw data.status:", data.status, typeof data.status)
 
                     const spec = Array.isArray(data.teaching_abilities)
                         ? data.teaching_abilities.map((ta: any) => Number(ta.subject_id))
@@ -246,18 +243,35 @@ export function TeacherDrawer({
                             ? data.teachingAbilities.map((ta: any) => Number(ta.subject_id))
                             : []
 
+                    // detail API trả về gender là string "0"/"1"
+                    const genderStr = data.gender?.toString()
+                    const genderVal = genderStr === "0" ? "female" : "male"
+
+                    // detail API có typo "nantionality" thay vì "nationality"
+                    const nationalityVal =
+                        data.nationality ||
+                        (data as any).nantionality ||
+                        "Việt Nam"
+
+                    // detail API trả về subject_names (string) thay vì teaching_abilities (array)
+                    const expertiseVal = data.subject_names || ""
+
+                    const statusVal = data.status
+                    console.log("[TeacherDrawer] statusVal to reset:", statusVal)
+
                     reset({
                         first_name: data.first_name || "",
                         last_name: data.last_name || "",
                         email: data.email || "",
                         tel: data.tel || "",
                         address: data.address || "",
-                        nationality: data.nationality || "Việt Nam",
-                        gender: data.gender === 0 ? "female" : "male",
+                        nationality: nationalityVal,
+                        gender: genderVal,
                         specialization: spec,
+                        expertise: expertiseVal,
                         experience: data.experience_years?.toString() || "",
-                        target_student: ts,
-                        status: data.status === 1 ? "active" : "inactive",
+                        target_student: data.target_student?.toString() ?? "2",
+                        status: statusVal,
                         date_of_birth: data.birth_date
                             ? format(new Date(data.birth_date), "yyyy-MM-dd")
                             : "",
@@ -288,8 +302,8 @@ export function TeacherDrawer({
                 specialization: [],
                 expertise: "",
                 experience: "",
-                target_student: "all",
-                status: "active",
+                target_student: "2",
+                status: "1",
                 date_of_birth: "",
                 avatar: "",
                 bio: "",
@@ -323,12 +337,8 @@ export function TeacherDrawer({
             formData.append("gender", data.gender === "female" ? "0" : "1")
             formData.append("birth_date", data.date_of_birth)
             formData.append("experience_years", data.experience)
-            formData.append("status", data.status === "active" ? "1" : "0")
-            
-            let ts = "2"
-            if (data.target_student === "student") ts = "0"
-            else if (data.target_student === "employee") ts = "1"
-            formData.append("target_student", ts)
+            formData.append("status", data.status)
+            formData.append("target_student", data.target_student)
 
             if (data.bio) {
                 formData.append("introduction", data.bio)
@@ -522,15 +532,15 @@ export function TeacherDrawer({
                                     <Badge
                                         className={cn(
                                             "mt-1 text-xs",
-                                            watch("status") === "active"
+                                            watch("status") === "1"
                                                 ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/50"
                                                 : "bg-rose-500/10 text-rose-600 border-rose-200/50"
                                         )}
                                         variant="outline"
                                     >
-                                        {watch("status") === "active"
-                                            ? "Đang hoạt động"
-                                            : "Bị khóa"}
+                                        {watch("status") === "1"
+                                            ? "Hoạt động"
+                                            : "Bị chặn"}
                                     </Badge>
                                 </div>
                             </div>
@@ -887,7 +897,7 @@ export function TeacherDrawer({
                                                         key={opt.value}
                                                         type="button"
                                                         disabled={isDisabled}
-                                                        onClick={() => setValue("status", opt.value as "active" | "inactive", { shouldValidate: true })}
+                                                        onClick={() => setValue("status", opt.value as "1" | "0", { shouldValidate: true })}
                                                         className={cn(
                                                             "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:opacity-50",
                                                             isSelected

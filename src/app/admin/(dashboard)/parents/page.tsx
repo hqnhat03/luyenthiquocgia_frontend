@@ -93,8 +93,8 @@ export default function ParentsPage() {
 
   const statusLabels: Record<string, string> = {
     "all": "Tất cả trạng thái",
-    "active": "Đang hoạt động",
-    "inactive": "Bị khóa",
+    "1": "Hoạt động",
+    "0": "Bị chặn",
   }
 
   const fetchParents = React.useCallback(async () => {
@@ -104,7 +104,7 @@ export default function ParentsPage() {
       const params = new URLSearchParams()
       if (debouncedSearch) params.append("name", debouncedSearch)
       if (status !== "all") {
-        params.append("status", status === "active" ? "1" : "0")
+        params.append("status", status)
       }
 
       params.append("page", currentPage.toString())
@@ -254,8 +254,8 @@ export default function ParentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Tất cả trạng thái">Tất cả trạng thái</SelectItem>
-                <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
-                <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+                <SelectItem value="Hoạt động">Hoạt động</SelectItem>
+                <SelectItem value="Bị chặn">Bị chặn</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex-1"></div>
@@ -392,13 +392,13 @@ export default function ParentsPage() {
                     )}
                   </TableCell>
                   <TableCell >
-                    {parent.status === "active" ? (
+                    {parent.status == "1" ? (
                       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200/50 shadow-none">
-                        Đang hoạt động
+                        Hoạt động
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-200/50 shadow-none">
-                        Bị khóa
+                        Bị chặn
                       </Badge>
                     )}
                   </TableCell>

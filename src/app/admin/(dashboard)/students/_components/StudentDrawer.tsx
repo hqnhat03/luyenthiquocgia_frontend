@@ -60,7 +60,7 @@ const studentSchema = z.object({
     phone: z.string().min(10, "Số điện thoại không hợp lệ"),
     address: z.string().min(1, "Địa chỉ không được để trống"),
     gender: z.enum(["male", "female", "other"]),
-    status: z.enum(["active", "inactive"]),
+    status: z.union([z.literal("1"), z.literal("0")]),
     date_of_birth: z.string().min(1, { message: "Vui lòng chọn ngày sinh" }),
     avatar: z.string().optional().nullable(),
     student_type: z.enum(["student", "employee"]),
@@ -102,14 +102,14 @@ const studentTypeOptions = [
 
 const statusOptions = [
     {
-        value: "active",
+        value: "1",
         label: "Hoạt động",
         activeClass:
             "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300",
     },
     {
-        value: "inactive",
-        label: "Bị khóa",
+        value: "0",
+        label: "Bị chặn",
         activeClass:
             "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300",
     },
@@ -166,7 +166,7 @@ export function StudentDrawer({
             phone: "",
             address: "",
             gender: "male",
-            status: "active",
+            status: "1",
             date_of_birth: "",
             student_type: "student",
             avatar: "",
@@ -227,7 +227,7 @@ export function StudentDrawer({
                         phone: mapped.phone || "",
                         address: mapped.address || "",
                         gender: mapped.gender || "male",
-                        status: mapped.status || "active",
+                        status: mapped.status !== undefined ? String(mapped.status) as "1" | "0" : "1",
                         date_of_birth: mapped.date_of_birth || "",
                         avatar: mapped.avatar || "",
                         student_type: mapped.student_type || "student",
@@ -256,7 +256,7 @@ export function StudentDrawer({
                 phone: "",
                 address: "",
                 gender: "male",
-                status: "active",
+                status: "1",
                 student_type: "student",
                 avatar: "",
                 date_of_birth: "",
@@ -283,7 +283,7 @@ export function StudentDrawer({
             formData.append("address", data.address)
             formData.append("gender", data.gender === "female" ? "0" : "1")
             formData.append("birth_date", dayOfBirth)
-            formData.append("status", data.status === "active" ? "1" : "0")
+            formData.append("status", data.status === "1" ? "1" : "0")
             formData.append("type", data.student_type === "employee" ? "2" : "1")
 
             if (data.student_type === "student") {
@@ -485,13 +485,13 @@ export function StudentDrawer({
                                         <Badge
                                             className={cn(
                                                 "text-xs",
-                                                watch("status") === "active"
+                                                watch("status") === "1"
                                                     ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/50"
                                                     : "bg-rose-500/10 text-rose-600 border-rose-200/50"
                                             )}
                                             variant="outline"
                                         >
-                                            {watch("status") === "active" ? "Đang hoạt động" : "Bị khóa"}
+                                            {watch("status") === "1" ? "Hoạt động" : "Bị chặn"}
                                         </Badge>
                                     </div>
                                     <Can permission="student_in_course_create">
@@ -527,7 +527,7 @@ export function StudentDrawer({
                                 <DetailRow
                                     icon={ShieldCheck}
                                     label="Trạng thái"
-                                    value={watch("status") === "active" ? "Hoạt động" : "Bị khóa"}
+                                    value={watch("status") === "1" ? "Hoạt động" : "Bị chặn"}
                                 />
 
                                 {studentType === "student" && (
@@ -684,7 +684,7 @@ export function StudentDrawer({
                                                     key={opt.value}
                                                     type="button"
                                                     disabled={isDisabled}
-                                                    onClick={() => setValue("status", opt.value as "active" | "inactive", { shouldValidate: true })}
+                                                    onClick={() => setValue("status", opt.value as "1" | "0", { shouldValidate: true })}
                                                     className={cn(
                                                         "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:opacity-50",
                                                         isSelected

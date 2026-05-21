@@ -65,13 +65,13 @@ export default function TeachersPage() {
 
   const statusLabels: Record<string, string> = {
     "all": "Tất cả trạng thái",
-    "active": "Đang hoạt động",
-    "inactive": "Bị khóa",
+    "1": "Hoạt động",
+    "0": "Bị chặn",
   }
   const targetStudentLabels: Record<string, string> = {
-    all: "Tất cả",
-    student: "Học sinh",
-    employee: "Nhân viên",
+    "2": "Tất cả",
+    "0": "Học sinh",
+    "1": "Nhân viên",
   }
   const [expertise, setExpertise] = React.useState("")
   const [teachers, setTeachers] = React.useState<Teacher[]>([])
@@ -136,7 +136,7 @@ export default function TeachersPage() {
       const params = new URLSearchParams()
       if (debouncedSearch) params.append("name", debouncedSearch)
       if (status !== "all") {
-        params.append("status", status === "active" ? "1" : "0")
+        params.append("status", status)
       }
       if (debouncedExpertise) params.append("subject", debouncedExpertise)
 
@@ -245,8 +245,8 @@ export default function TeachersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Tất cả trạng thái">Tất cả trạng thái</SelectItem>
-                <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
-                <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+                <SelectItem value="Hoạt động">Hoạt động</SelectItem>
+                <SelectItem value="Bị chặn">Bị chặn</SelectItem>
               </SelectContent>
             </Select>
 
@@ -397,17 +397,17 @@ export default function TeachersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs font-normal">
-                      {targetStudentLabels[teacher.target_student || "all"] || teacher.target_student}
+                      {targetStudentLabels[teacher.target_student?.toString() || "2"] || teacher.target_student}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {teacher.status === "active" ? (
+                    {teacher.status == '1' ? (
                       <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200/50 hover:bg-emerald-500/20">
-                        Đang hoạt động
+                        Hoạt động
                       </Badge>
                     ) : (
                       <Badge variant="secondary" className="bg-rose-500/10 text-rose-600 border-rose-200/50 hover:bg-rose-500/20">
-                        Bị khóa
+                        Bị chặn
                       </Badge>
                     )}
                   </TableCell>

@@ -51,8 +51,8 @@ const adminSchema = z.object({
     last_name: z.string().min(1, "Tên phải có ít nhất 1 ký tự"),
     email: z.string().email("Email không hợp lệ"),
     avatar_url: z.any().nullable().optional(),
-    status: z.union([z.literal("active"), z.literal("inactive"), z.literal(1), z.literal(0)]),
-    role_id: z.number().min(1, "Vui lòng chọn một vai trò"),
+    status: z.union([z.literal("1"), z.literal("0")]),
+    role_id: z.coerce.number().min(1, "Vui lòng chọn một vai trò"),
 })
 
 type AdminFormValues = z.infer<typeof adminSchema>
@@ -63,14 +63,14 @@ type AdminFormValues = z.infer<typeof adminSchema>
 
 const statusOptions = [
     {
-        value: "active",
+        value: "1",
         label: "Hoạt động",
         activeClass:
             "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300",
     },
     {
-        value: "inactive",
-        label: "Bị khóa",
+        value: "0",
+        label: "Bị chặn",
         activeClass:
             "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300",
     },
@@ -137,7 +137,7 @@ export function AdminDrawer({
             last_name: "",
             email: "",
             avatar_url: null,
-            status: 1,
+            status: "1" as const,
             role_id: 2, // Default to admin role if you know the ID
         },
     })
@@ -190,9 +190,9 @@ export function AdminDrawer({
                         first_name: data.first_name || "",
                         last_name: data.last_name || "",
                         email: data.email || "",
-                        status: data.status,
+                        status: (String(data.status) === "0" ? "0" : "1") as "0" | "1",
                         avatar_url: data.avatar_url || null,
-                        role_id: data.role_id,
+                        role_id: Number(data.role_id),
                     })
                     fetchedAdminIdRef.current = admin.id
                     setPreviewAvatar(null)
@@ -212,7 +212,7 @@ export function AdminDrawer({
                 first_name: "",
                 last_name: "",
                 email: "",
-                status: 1,
+                status: "1" as const,
                 avatar_url: null,
                 role_id: internalRoles.length > 0 ? internalRoles[0].id : 0,
             })
@@ -236,6 +236,8 @@ export function AdminDrawer({
                     } else if (value === null || value === "") {
                         formData.append("avatar_url", "")
                     }
+                } else if (key === "status") {
+                    formData.append(key, String(Number(value)))
                 } else if (value !== null && value !== undefined) {
                     formData.append(key, value.toString())
                 }
@@ -364,8 +366,8 @@ export function AdminDrawer({
                                 </Avatar>
                                 <div className="text-center">
                                     <h3 className="text-lg font-bold">{watch("first_name")} {watch("last_name")}</h3>
-                                    <Badge className={cn("mt-1", (watch("status") === "active" || watch("status") === 1) ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600")} variant="outline">
-                                        {(watch("status") === "active" || watch("status") === 1) ? "Đang hoạt động" : "Bị khóa"}
+                                    <Badge className={cn("mt-1", watch("status") === "1" ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600")} variant="outline">
+                                        {watch("status") === "1" ? "Hoạt động" : "Bị chặn"}
                                     </Badge>
                                 </div>
                             </div>
@@ -375,7 +377,7 @@ export function AdminDrawer({
                                 <DetailRow
                                     icon={Shield}
                                     label="Trạng thái"
-                                    value={(watch("status") === "active" || watch("status") === 1) ? "Đang hoạt động" : "Bị khóa"}
+                                    value={watch("status") === "1" ? "Hoạt động" : "Bị chặn"}
                                 />
                             </div>
                             <Separator />
@@ -461,14 +463,13 @@ export function AdminDrawer({
                                 <FieldLabel>Trạng thái</FieldLabel>
                                 <div className="flex gap-2">
                                     {statusOptions.map((opt) => {
-                                        const optValue = opt.value === "active" ? 1 : 0
-                                        const isSelected = watch("status") === optValue || watch("status") === opt.value
+                                        const isSelected = watch("status") === opt.value
                                         return (
                                             <button
                                                 key={opt.value}
                                                 type="button"
                                                 disabled={isDisabled}
-                                                onClick={() => setValue("status", optValue, { shouldValidate: true })}
+                                                onClick={() => setValue("status", opt.value as "1" | "0", { shouldValidate: true })}
                                                 className={cn(
                                                     "flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all disabled:opacity-50",
                                                     isSelected

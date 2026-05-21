@@ -10,8 +10,8 @@ export interface Teacher {
     nationality?: string
     expertise?: string
     experience?: string
-    target_student?: "student" | "employee" | "all" | string
-    status: "active" | "inactive"
+    target_student?: "0" | "1" | "2"
+    status: "1" | "0"
     date_of_birth?: string
     avatar?: string | null
     bio?: string
@@ -36,10 +36,6 @@ export function splitFullName(fullName: string) {
  * Maps a backend teacher record to frontend Teacher state.
  */
 export function mapBackendTeacherToFrontend(item: any): Teacher {
-    let ts = "all"
-    if (item.target_student === 0) ts = "student"
-    else if (item.target_student === 1) ts = "employee"
-
     const spec = Array.isArray(item.teaching_abilities)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? item.teaching_abilities.map((ta: any) => Number(ta.subject_id))
@@ -68,8 +64,8 @@ export function mapBackendTeacherToFrontend(item: any): Teacher {
         nationality: item.nantionality || "",
         expertise: item.subject_names || "",
         experience: item.experience_years?.toString() || "",
-        target_student: ts,
-        status: item.status === 1 ? "active" : "inactive",
+        target_student: item.target_student?.toString(),
+        status: item.status,
         date_of_birth: item.birth_date || "",
         avatar: item.avatar_url || null,
         bio: item.introduction || "",

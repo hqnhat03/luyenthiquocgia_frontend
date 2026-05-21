@@ -98,8 +98,8 @@ export default function StudentsPage() {
   }
   const statusLabels: Record<string, string> = {
     "all": "Tất cả trạng thái",
-    "active": "Đang hoạt động",
-    "inactive": "Bị khóa",
+    "1": "Hoạt động",
+    "0": "Bị chặn",
   }
 
   const fetchStudents = React.useCallback(async () => {
@@ -112,7 +112,7 @@ export default function StudentsPage() {
       params.append("pagination", pageSize.toString())
       if (debouncedSearch) params.append("name", debouncedSearch)
       if (status !== "all") {
-        params.append("status", status === "active" ? "1" : "0")
+        params.append("status", status)
       }
       if (studentType !== "all") {
         params.append("type", studentType === "employee" ? "2" : "1")
@@ -300,8 +300,8 @@ export default function StudentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Tất cả trạng thái">Tất cả trạng thái</SelectItem>
-                <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
-                <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+                <SelectItem value="Hoạt động">Hoạt động</SelectItem>
+                <SelectItem value="Bị chặn">Bị chặn</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -445,13 +445,13 @@ export default function StudentsPage() {
                   <TableCell className="text-sm text-muted-foreground">{student.email}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{student.phone}</TableCell>
                   <TableCell >
-                    {student.status === "active" ? (
+                    {student.status === "1" ? (
                       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200/50 shadow-none">
-                        Đang hoạt động
+                        Hoạt động
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-200/50 shadow-none">
-                        Bị khóa
+                        Bị chặn
                       </Badge>
                     )}
                   </TableCell>

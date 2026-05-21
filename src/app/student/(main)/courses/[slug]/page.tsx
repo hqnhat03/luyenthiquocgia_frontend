@@ -1,5 +1,6 @@
 "use client"
 
+import { studentAxios as api } from "@/api/student"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,6 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { studentAxios as api } from "@/api/student"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/auth-store"
 import { AxiosError } from "axios"
@@ -24,14 +24,12 @@ import {
   Calendar,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ChevronLeft,
   Clock,
   GraduationCap,
   Tag,
   Users
 } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import React, { useEffect, useState } from "react"
@@ -424,13 +422,10 @@ export default function CourseDetailPage() {
                   className="absolute inset-0 bg-cover bg-center blur-xl opacity-50 scale-110"
                   style={{ backgroundImage: `url(${getImageUrl(course.image_url)})` }}
                 />
-                <Image
+                <img
                   src={getImageUrl(course.image_url) || "https://placehold.co/600x800.png?text=No+Image"}
                   alt={course.name}
                   className="relative object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"
-                  width={400}
-                  height={533}
-                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 <div className="absolute bottom-3 left-3">

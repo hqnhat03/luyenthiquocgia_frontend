@@ -72,9 +72,7 @@ const parentSchema = z.object({
     email: z.email({ message: "Email không hợp lệ" }),
     phone: z.string().min(10, { message: "Số điện thoại không hợp lệ" }),
     address: z.string().min(1, { message: "Vui lòng nhập địa chỉ" }),
-    status: z.enum(["active", "inactive"], {
-        error: "Vui lòng chọn trạng thái",
-    }),
+    status: z.union([z.literal("1"), z.literal("0")]),
     date_of_birth: z.date({ error: "Vui lòng chọn ngày sinh" }),
     avatar: z.any().optional().nullable(),
     student_ids: z.array(z.number()),
@@ -86,14 +84,14 @@ type ParentFormValues = z.infer<typeof parentSchema>
 
 const statusOptions = [
     {
-        value: "active",
+        value: "1",
         label: "Hoạt động",
         activeClass:
             "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300",
     },
     {
-        value: "inactive",
-        label: "Bị khóa",
+        value: "0",
+        label: "Bị chặn",
         activeClass:
             "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300",
     },
@@ -162,7 +160,7 @@ export function ParentDrawer({
             email: "",
             phone: "",
             address: "",
-            status: "active",
+            status: "1" as const,
             avatar: "",
             student_ids: [],
         },
@@ -217,7 +215,7 @@ export function ParentDrawer({
                         email: data.email || "",
                         phone: data.tel || "",
                         address: data.address || "",
-                        status: data.status === 1 ? "active" : "inactive",
+                        status: (String(data.status) === "0" ? "0" : "1") as "0" | "1",
                         date_of_birth: data.birth_date
                             ? new Date(data.birth_date)
                             : new Date(),
@@ -265,7 +263,7 @@ export function ParentDrawer({
                 email: "",
                 phone: "",
                 address: "",
-                status: "active",
+                status: "1" as const,
                 avatar: "",
                 student_ids: [],
             })
@@ -536,18 +534,18 @@ export function ParentDrawer({
                                     <h3 className="text-lg font-bold text-foreground">
                                         {fullName}
                                     </h3>
-                                    <Badge
+                                        <Badge
                                         className={cn(
                                             "mt-1 text-xs",
-                                            watch("status") === "active"
+                                            watch("status") === "1"
                                                 ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/50"
                                                 : "bg-rose-500/10 text-rose-600 border-rose-200/50"
                                         )}
                                         variant="outline"
                                     >
-                                        {watch("status") === "active"
-                                            ? "Đang hoạt động"
-                                            : "Bị khóa"}
+                                        {watch("status") === "1"
+                                            ? "Hoạt động"
+                                            : "Bị chặn"}
                                     </Badge>
                                 </div>
                             </div>
@@ -788,9 +786,7 @@ export function ParentDrawer({
                                                     onClick={() =>
                                                         form.setValue(
                                                             "status",
-                                                            opt.value as
-                                                            | "active"
-                                                            | "inactive",
+                                                            opt.value as "1" | "0",
                                                             {
                                                                 shouldValidate:
                                                                     true,

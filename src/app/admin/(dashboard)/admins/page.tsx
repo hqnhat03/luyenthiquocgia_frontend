@@ -57,8 +57,8 @@ export default function AdminsPage() {
 
   const statusLabel: Record<string, string> = {
     "all": "Tất cả trạng thái",
-    "active": "Đang hoạt động",
-    "inactive": "Bị khóa",
+    "1": "Hoạt động",
+    "0": "Bị chặn",
   }
 
   // Kiểm tra quyền truy cập trang danh sách
@@ -128,7 +128,7 @@ export default function AdminsPage() {
       const response = await api.get("/admin/admins", {
         params: {
           name: debouncedSearch || undefined,
-          status: status !== "all" ? (status === "active" ? 1 : 0) : undefined,
+          status: status !== "all" ? parseInt(status, 10) : undefined,
           page: currentPage,
           pagination: pageSize,
           order_by_name: sortBy === "name" ? sortOrder : undefined,
@@ -266,8 +266,8 @@ export default function AdminsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Tất cả trạng thái">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
-                  <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+                  <SelectItem value="Hoạt động">Hoạt động</SelectItem>
+                  <SelectItem value="Bị chặn">Bị chặn</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -422,13 +422,13 @@ export default function AdminsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {(admin.status === "active" || admin.status === 1) ? (
+                      {admin.status == 1 ? (
                         <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200/50 transition-colors cursor-default">
-                          Đang hoạt động
+                          Hoạt động
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-200/50 transition-colors cursor-default">
-                          Bị khóa
+                          Bị chặn
                         </Badge>
                       )}
                     </TableCell>

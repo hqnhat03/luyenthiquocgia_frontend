@@ -6,7 +6,7 @@ export interface Parent {
     email: string
     phone: string
     address?: string
-    status: "active" | "inactive"
+    status: "1" | "0"
     date_of_birth?: string
     avatar?: string | null
     students?: Pick<Student, "id" | "name" | "email">[]
@@ -38,7 +38,7 @@ export function mapBackendParentToFrontend(item: any): Parent {
         email: item.email || "",
         phone: item.tel || "",
         address: item.address || "",
-        status: item.status === 1 ? "active" : "inactive",
+        status: item.status,
         date_of_birth: item.birth_date || undefined,
         avatar: item.avatar_url || null,
         students: Array.isArray(item.students)
@@ -62,7 +62,7 @@ export function mapFrontendParentToBackend(data: any) {
         email: data.email,
         tel: data.phone,
         address: data.address,
-        status: data.status === "active" ? 1 : 0,
+        status: Number(data.status),
         birth_date: data.date_of_birth,
         avatar_url: data.avatar || null,
         student_ids: data.student_ids || []

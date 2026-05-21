@@ -29,6 +29,7 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'api.luyenthiquocgia.site',
+                pathname: '/storage/**'
             },
             {
                 protocol: 'http',

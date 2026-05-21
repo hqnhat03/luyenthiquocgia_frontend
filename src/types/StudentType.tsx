@@ -7,7 +7,7 @@ export interface Student {
     phone: string
     address?: string
     gender?: "male" | "female" | "other"
-    status: "active" | "inactive"
+    status: "1" | "0"
     date_of_birth?: string
     avatar?: string | null
     student_type: "student" | "employee"
@@ -46,11 +46,11 @@ export function mapBackendStudentToFrontend(item: any): Student {
         email: item.email || "",
         phone: item.tel || "",
         address: item.address || "",
-        gender: item.gender === 1 ? "male" : (item.gender === 0 ? "female" : "other"),
-        status: item.status === 1 ? "active" : "inactive",
+        gender: Number(item.gender) === 1 ? "male" : (Number(item.gender) === 0 ? "female" : "other"),
+        status: String(item.status) as "1" | "0",
         date_of_birth: item.birth_date || "",
         avatar: item.avatar_url || null,
-        student_type: item.type === 2 ? "employee" : "student",
+        student_type: Number(item.type) === 2 ? "employee" : "student",
         school: item.school_name || "",
         grade: item.grade_level ? item.grade_level.toString() : "",
         work: item.company_name || "",

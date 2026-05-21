@@ -8,7 +8,7 @@ export interface Admin {
     email: string
     avatar_url: string | null
     avatar?: string // For compatibility
-    status: "active" | "inactive" | number
+    status: 1 | 0
     role_id: number
     role?: Role
     roles: Role[] | string[]
