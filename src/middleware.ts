@@ -103,22 +103,14 @@ export function middleware(request: NextRequest) {
   // ─── STUDENT: www.domain hoặc domain (không có subdomain) ────────────────
   // Học sinh không cần đăng nhập, tất cả route đều public
   if (subdomain === 'www' || subdomain === '') {
-    // Nếu có prefix /student thì bỏ đi
+    // Nếu đã có prefix /student thì bỏ đi (tránh loop)
     if (pathname === '/student' || pathname.startsWith('/student/')) {
       url.pathname = pathname.replace(/^\/student/, '') || '/';
       return NextResponse.redirect(url);
     }
-    // Redirect root to dashboard
-    if (pathname === '/') {
-      url.pathname = '/dashboard';
-      return NextResponse.redirect(url);
-    }
-    // Rewrite trực tiếp, không kiểm tra token
-    if (!pathname.startsWith('/student/')) {
-      url.pathname = `/student${pathname}`;
-      return NextResponse.rewrite(url);
-    }
-    return NextResponse.next();
+    // Rewrite thẳng sang /student/... không redirect, không kiểm tra token
+    url.pathname = pathname === '/' ? '/student' : `/student${pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   // Fallback
