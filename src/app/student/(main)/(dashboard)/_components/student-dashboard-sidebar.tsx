@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  BookOpen,
   Calendar,
   LayoutDashboard
 } from "lucide-react"
@@ -23,11 +22,6 @@ const navItems = [
     title: "Bảng điều khiển",
     url: "/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    title: "Lớp học của tôi",
-    url: "/classes",
-    icon: BookOpen,
   },
   {
     title: "Lịch học",

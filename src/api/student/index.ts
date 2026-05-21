@@ -1,4 +1,3 @@
-import { setupAuthInterceptor } from "@/lib/axios";
 import axios from "axios";
 
 // Tạo một instance riêng cho student với baseURL là /api/v1/student
@@ -10,8 +9,23 @@ export const studentAxios = axios.create({
   },
 });
 
-// Sử dụng chung logic gắn token vào header từ axios.ts
-setupAuthInterceptor(studentAxios);
+// Request interceptor: tự gắn token vào header thay vì dùng từ lib/axios.ts
+studentAxios.interceptors.request.use(
+  (config) => {
+    if (typeof window !== "undefined") {
+      const token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("access_token="))
+        ?.split("=")[1];
+
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Các biến xử lý queue khi refresh token cho student
 let isRefreshing = false;
@@ -34,11 +48,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // Response interceptor 1: Bắt lỗi 401 code từ body
 studentAxios.interceptors.response.use(
   (response) => {
-    if (
-      response.data &&
-      response.data.code === 401 &&
-      response.data.message === "Thông tin đăng nhập không hợp lệ."
-    ) {
+    if (response.data.code === 401) {
       return Promise.reject({
         config: response.config,
         response: { status: 401, data: response.data },
@@ -73,10 +83,7 @@ studentAxios.interceptors.response.use(
       try {
         console.log("Student Token expired. Attempting to refresh...");
 
-        const refreshUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace(
-          /\/$/,
-          ""
-        )}/api/v1/student/refresh`;
+        const refreshUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/student/refresh`;
 
         // Dùng axios mặc định để gọi refresh, tránh loop
         const response = await axios({
@@ -91,7 +98,6 @@ studentAxios.interceptors.response.use(
             }`,
             Accept: "application/json",
           },
-          withCredentials: true,
         });
 
         if (response.data.status === "success") {

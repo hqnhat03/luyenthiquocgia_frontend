@@ -8,10 +8,10 @@ export function middleware(request: NextRequest) {
 
   // Define domains from env
   const baseDomain = process.env.NEXT_PUBLIC_DOMAIN;
-  const adminDomain = baseDomain;
-  const teacherDomain = `teacher.${baseDomain}`;
-  const studentDomain = `student.${baseDomain}`;
-  const guardianDomain = `guardian.${baseDomain}`;
+  const studentDomain = baseDomain;
+  const adminDomain = `quantrivien.${baseDomain}`;
+  const teacherDomain = `giaovien.${baseDomain}`;
+  const guardianDomain = `phuhuynh.${baseDomain}`;
 
   // Extract the main part of the hostname (removing port if present)
   const currentHost = hostname.split(':')[0];

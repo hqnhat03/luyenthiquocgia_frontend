@@ -176,7 +176,9 @@ export default function ExamQuestionsPage() {
       if (response.data.status === 'success') {
         toast.success(response.data.message || 'Nộp bài thành công!');
         localStorage.removeItem(`exam_answers_${examId}`);
-        // router.push(`/student/exams/${examId}/result`);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 3000);
       } else {
         toast.error(response.data.message || 'Có lỗi xảy ra khi nộp bài.');
       }

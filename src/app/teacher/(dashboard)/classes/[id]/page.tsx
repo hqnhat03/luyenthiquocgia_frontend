@@ -411,10 +411,6 @@ export default function ClassDetailPage() {
                   </Avatar>
                   <div className="space-y-0.5">
                     <p className="font-black text-lg group-hover:text-primary transition-colors">{teacher.name}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] uppercase font-black px-1.5 py-0">Giảng viên</Badge>
-                      <span className="text-xs text-muted-foreground font-medium italic">Chính thức</span>
-                    </div>
                   </div>
                 </div>
               ))}

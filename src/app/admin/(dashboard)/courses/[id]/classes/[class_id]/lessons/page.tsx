@@ -85,6 +85,7 @@ import {
 import { usePermission } from "@/hooks/use-permission"
 import api from "@/lib/axios"
 import { AxiosError } from "axios"
+import AdminVideoPlayer from "./_components/VideoPlayer"
 
 interface Lecture {
     id: number
@@ -114,6 +115,8 @@ const lectureStatusConfig = {
         className: 'bg-rose-500/10 text-rose-600 border-rose-500/20 hover:bg-rose-500/20',
     },
 }
+
+
 
 function LectureStatusBadge({ status }: { status: Lecture['status'] }) {
     const config = lectureStatusConfig[status] || lectureStatusConfig.pending
@@ -845,7 +848,7 @@ export default function ClassLecturesPage() {
 
                     {isFetchingDetail ? (
                         <div className="space-y-6 px-4">
-                            <Skeleton className="h-[400px] w-full rounded-xl" />
+                            <Skeleton className="h-[280px] w-full rounded-xl" />
                             <div className="space-y-2">
                                 <Skeleton className="h-4 w-20" />
                                 <Skeleton className="h-10 w-full" />
@@ -871,26 +874,8 @@ export default function ClassLecturesPage() {
                                             <Video className="size-4" />
                                             Video bài giảng
                                         </label>
-                                        <div className="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-2xl border border-muted">
-                                            {viewLecture.video_url.includes('youtube.com') || viewLecture.video_url.includes('youtu.be') ? (
-                                                <iframe
-                                                    src={viewLecture.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                                                    className="w-full h-full"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    allowFullScreen
-                                                />
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full text-white flex-col gap-4">
-                                                    <Video className="size-12 opacity-20" />
-                                                    <p className="text-sm opacity-60">Định dạng video không hỗ trợ xem trực tiếp</p>
-                                                    <Button variant="outline" size="sm">
-                                                        <a href={viewLecture.video_url} target="_blank" rel="noopener noreferrer">
-                                                            <ExternalLink className="mr-2 h-4 w-4" />
-                                                            Mở link video
-                                                        </a>
-                                                    </Button>
-                                                </div>
-                                            )}
+                                        <div className="w-full rounded-xl overflow-hidden bg-black shadow-2xl border border-muted" style={{ height: '280px' }}>
+                                            <AdminVideoPlayer videoUrl={viewLecture.video_url || ""} lectureId={viewLecture.id} />
                                         </div>
                                     </div>
                                 )}

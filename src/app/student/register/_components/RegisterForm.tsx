@@ -10,10 +10,10 @@ import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios";
@@ -21,10 +21,10 @@ import { useAuthStore } from "@/store/auth-store";
 import { AxiosError } from "axios";
 
 const registerSchema = z.object({
-  name: z.string().min(2, { message: "Họ và tên phải có ít nhất 2 ký tự" }),
+  last_name: z.string().min(2, { message: "Họ phải có ít nhất 2 ký tự" }),
+  first_name: z.string().min(2, { message: "Tên phải có ít nhất 2 ký tự" }),
   email: z.string().email({ message: "Email không hợp lệ" }).min(1, { message: "Vui lòng nhập email" }),
-  phone: z.string().min(10, { message: "Số điện thoại không hợp lệ" }).max(11, { message: "Số điện thoại không hợp lệ" }).optional().or(z.literal('')),
-  password: z.string().min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự" }),
+  password: z.string().min(8, { message: "Mật khẩu phải có ít nhất 8 ký tự" }),
   confirmPassword: z.string().min(1, { message: "Vui lòng nhập lại mật khẩu" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Mật khẩu xác nhận không khớp",
@@ -41,9 +41,9 @@ export function RegisterForm() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
+      last_name: "",
+      first_name: "",
       email: "",
-      phone: "",
       password: "",
       confirmPassword: "",
     },
@@ -58,40 +58,35 @@ export function RegisterForm() {
   async function onSubmit(data: RegisterFormValues) {
     setIsLoading(true);
     try {
-      const response = await api.post("/auth/register", {
-        name: data.name,
+      const response = await api.post("/student/register", {
+        first_name: data.first_name,
+        last_name: data.last_name,
         email: data.email,
-        phone: data.phone,
         password: data.password,
         password_confirmation: data.confirmPassword,
-        role: "student", // Mặc định đăng ký cho học viên
       });
 
       const { data: result } = response;
 
-      if (result.success) {
+      if (result.status === "success") {
         toast.success(result.message || "Đăng ký tài khoản thành công!");
-
-        if (result.data) {
-          useAuthStore.getState().setAuth(result.data.user, result.data.access_token);
-        }
-
-        // Sử dụng window.location.href thay vì router.push để đảm bảo middleware nhận cookie
-        window.location.href = "/";
+        window.location.href = "/login";
       } else {
         toast.error(result.message || "Đăng ký thất bại");
       }
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         console.error(error);
-        const message = error.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau.";
-        toast.error(message);
-
-        if (error.response?.data?.errors) {
-          const fieldErrors = error.response.data.errors;
+        
+        // Handle validation errors if returned in `message` as object
+        if (typeof error.response?.data?.message === 'object') {
+          const fieldErrors = error.response.data.message;
           Object.keys(fieldErrors).forEach((key) => {
             form.setError(key as keyof RegisterFormValues, { message: fieldErrors[key][0] });
           });
+        } else {
+          const message = error.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại sau.";
+          toast.error(message);
         }
       }
     } finally {
@@ -144,22 +139,41 @@ export function RegisterForm() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
             <FieldGroup className="gap-5">
-              <Field data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="name" className="font-semibold text-sm ml-1">Họ và tên</FieldLabel>
-                <div className="relative group">
-                  <div className="absolute left-3 top-3 transition-colors group-focus-within:text-primary">
-                    <UserCircle className="size-5 text-muted-foreground pointer-events-none" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field data-invalid={!!errors.last_name}>
+                  <FieldLabel htmlFor="last_name" className="font-semibold text-sm ml-1">Họ</FieldLabel>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-3 transition-colors group-focus-within:text-primary">
+                      <UserCircle className="size-5 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <Input
+                      {...register("last_name")}
+                      id="last_name"
+                      placeholder="Nguyễn Văn"
+                      disabled={isLoading}
+                      className="pl-12 h-12 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary/20 transition-all rounded-xl"
+                    />
                   </div>
-                  <Input
-                    {...register("name")}
-                    id="name"
-                    placeholder="Nguyễn Văn A"
-                    disabled={isLoading}
-                    className="pl-12 h-12 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary/20 transition-all rounded-xl"
-                  />
-                </div>
-                <FieldError errors={[errors.name]} />
-              </Field>
+                  <FieldError errors={[errors.last_name]} />
+                </Field>
+
+                <Field data-invalid={!!errors.first_name}>
+                  <FieldLabel htmlFor="first_name" className="font-semibold text-sm ml-1">Tên</FieldLabel>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-3 transition-colors group-focus-within:text-primary">
+                      <UserCircle className="size-5 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <Input
+                      {...register("first_name")}
+                      id="first_name"
+                      placeholder="A"
+                      disabled={isLoading}
+                      className="pl-12 h-12 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary/20 transition-all rounded-xl"
+                    />
+                  </div>
+                  <FieldError errors={[errors.first_name]} />
+                </Field>
+              </div>
 
               <Field data-invalid={!!errors.email}>
                 <FieldLabel htmlFor="email" className="font-semibold text-sm ml-1">Email</FieldLabel>
@@ -177,24 +191,6 @@ export function RegisterForm() {
                   />
                 </div>
                 <FieldError errors={[errors.email]} />
-              </Field>
-
-              <Field data-invalid={!!errors.phone}>
-                <FieldLabel htmlFor="phone" className="font-semibold text-sm ml-1">Số điện thoại (tùy chọn)</FieldLabel>
-                <div className="relative group">
-                  <div className="absolute left-3 top-3 transition-colors group-focus-within:text-primary">
-                    <Phone className="size-5 text-muted-foreground pointer-events-none" />
-                  </div>
-                  <Input
-                    {...register("phone")}
-                    id="phone"
-                    placeholder="0912345678"
-                    type="tel"
-                    disabled={isLoading}
-                    className="pl-12 h-12 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary/20 transition-all rounded-xl"
-                  />
-                </div>
-                <FieldError errors={[errors.phone]} />
               </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

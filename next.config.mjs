@@ -27,6 +27,10 @@ const nextConfig = {
                 hostname: 'example.com',
             },
             {
+                protocol: 'https',
+                hostname: 'api.luyenthiquocgia.site',
+            },
+            {
                 protocol: 'http',
                 hostname: 'localhost',
             },

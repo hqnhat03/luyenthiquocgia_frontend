@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, GraduationCap, Lock, LogIn, Mail, MoveLeft, User, Users } from "lucide-react";
+import { Eye, EyeOff, Lock, LogIn, Mail, MoveLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React from "react";
@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
+import SwitchLoginTab from "@/components/login/SwitchLoginTab";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -18,12 +19,9 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
+  Tabs
 } from "@/components/ui/tabs";
 import api from "@/lib/axios";
-import { APP_LINKS } from "@/lib/links";
 import { useAuthStore } from "@/store/auth-store";
 import { AxiosError } from "axios";
 
@@ -180,35 +178,7 @@ export function LoginForm() {
           </div>
 
           <Tabs value="teacher" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 h-12 p-1">
-              <TabsTrigger value="student">
-                <Link
-                  href={`${APP_LINKS.student}/login?email=${encodeURIComponent(currentEmail)}`}
-                  className="flex items-center gap-2 cursor-pointer h-full rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm"
-                >
-                  <User className="size-4" />
-                  Học viên
-                </Link>
-              </TabsTrigger>
-              <TabsTrigger value="teacher">
-                <Link
-                  href={`${APP_LINKS.teacher}/login?email=${encodeURIComponent(currentEmail)}`}
-                  className="flex items-center gap-2 cursor-pointer h-full rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm"
-                >
-                  <GraduationCap className="size-4" />
-                  Giảng viên
-                </Link>
-              </TabsTrigger>
-              <TabsTrigger value="guardian">
-                <Link
-                  href={`${APP_LINKS.guardian}/login?email=${encodeURIComponent(currentEmail)}`}
-                  className="flex items-center gap-2 cursor-pointer h-full rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs sm:text-sm"
-                >
-                  <Users className="size-4" />
-                  Phụ huynh
-                </Link>
-              </TabsTrigger>
-            </TabsList>
+            <SwitchLoginTab/>
 
             <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
               <FieldGroup className="gap-6">
