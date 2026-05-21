@@ -52,7 +52,7 @@ const adminSchema = z.object({
     email: z.string().email("Email không hợp lệ"),
     avatar_url: z.any().nullable().optional(),
     status: z.union([z.literal("1"), z.literal("0")]),
-    role_id: z.coerce.number().min(1, "Vui lòng chọn một vai trò"),
+    role_id: z.number().min(1, "Vui lòng chọn một vai trò"),
 })
 
 type AdminFormValues = z.infer<typeof adminSchema>
