@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Lock, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
                   Liên kết đặt lại mật khẩu đã hết hạn hoặc không tồn tại.
                 </p>
               </div>
-              <Button asChild className="w-full h-12 rounded-xl mt-4">
+              <Button className="w-full h-12 rounded-xl mt-4">
                 <Link href="/admin/forgot-password">Yêu cầu liên kết mới</Link>
               </Button>
             </div>

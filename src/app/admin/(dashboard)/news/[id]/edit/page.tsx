@@ -35,7 +35,7 @@ const articleSchema = z.object({
     content: z.string().min(10, "Nội dung phải có ít nhất 10 ký tự"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     image: z.any().optional(),
-    status: z.coerce.number(),
+    status: z.number(),
 })
 
 type FormValues = z.infer<typeof articleSchema>
