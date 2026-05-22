@@ -1,6 +1,6 @@
 "use client"
 
-import { Can } from "@/components/auth/can"
+
 import { usePermission } from "@/hooks/use-permission"
 import { Level } from "@/store/level-store"
 import { Layers, Library, Plus, RefreshCw, Search, Settings2, Trash2 } from "lucide-react"
@@ -72,6 +72,8 @@ export default function LevelsPage() {
   const [status, setStatus] = React.useState<string>("all")
   const [items, setItems] = React.useState<Level[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [paginationInfo, setPaginationInfo] = React.useState<{ total: number; last_page: number } | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
   const [levelToDelete, setLevelToDelete] = React.useState<Level | null>(null)
   const [isDeleting, setIsDeleting] = React.useState(false)
@@ -129,23 +131,37 @@ export default function LevelsPage() {
     )
   }, [items, search])
 
+  const paginatedItems = React.useMemo(() => {
+    const start = (currentPage - 1) * 10
+    return filteredItems.slice(start, start + 10)
+  }, [filteredItems, currentPage])
+
+  React.useEffect(() => {
+    setPaginationInfo({
+      total: filteredItems.length,
+      last_page: Math.ceil(filteredItems.length / 10) || 1
+    })
+  }, [filteredItems])
+
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [search, status, selectedSubjectId])
+
   const pageHeader = React.useMemo(() => (
     <div className="flex flex-1 items-center justify-between gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
       <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
         Quản lý trình độ
       </h2>
-      <Can permission="level_create">
-        <Button
-          className="h-10 px-6 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
-          onClick={() => {
-            setSelectedLevel(null)
-            setDrawerMode("create")
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          <span className="text-sm font-bold">Thêm trình độ</span>
-        </Button>
-      </Can>
+      <Button
+        className="h-10 px-6 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
+        onClick={() => {
+          setSelectedLevel(null)
+          setDrawerMode("create")
+        }}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        <span className="text-sm font-bold">Thêm trình độ</span>
+      </Button>
     </div>
   ), []);
 
@@ -158,7 +174,9 @@ export default function LevelsPage() {
     if (!levelToDelete) return
     setIsDeleting(true)
     try {
-      const response = await api.delete(`/admin/subject-levels/delete?id=${levelToDelete.id}`)
+      const response = await api.delete(`/admin/subject-levels/delete`, {
+        data: { id: levelToDelete.id }
+      })
       const result = response.data
       if (response.status === 200) {
         toast.success(result.message || "Xóa trình độ thành công")
@@ -297,7 +315,7 @@ export default function LevelsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : filteredItems.length === 0 ? (
+              ) : paginatedItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -307,7 +325,7 @@ export default function LevelsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredItems.map((item: Level) => (
+                paginatedItems.map((item: Level) => (
                   <TableRow key={item.id} className="group hover:bg-primary/[0.02] transition-colors">
                     <TableCell className="font-medium text-foreground/90 py-4 pl-6">
                       {item.level}
@@ -324,48 +342,44 @@ export default function LevelsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center py-4">
-                      <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Can permission="level_edit">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-amber-600 transition-colors rounded-xl"
-                            title="Chỉnh sửa"
-                            onClick={() => {
-                              setSelectedLevel(item)
-                              setDrawerMode("edit")
-                            }}
+                      <div className="flex justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-amber-600 transition-colors rounded-xl"
+                          title="Chỉnh sửa"
+                          onClick={() => {
+                            setSelectedLevel(item)
+                            setDrawerMode("edit")
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </Button>
-                        </Can>
-                        <Can permission="level_delete">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors rounded-xl"
-                            title="Xóa"
-                            onClick={() => {
-                              setLevelToDelete(item)
-                              setIsDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </Can>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors rounded-xl"
+                          title="Xóa"
+                          onClick={() => {
+                            setLevelToDelete(item)
+                            setIsDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -411,12 +425,30 @@ export default function LevelsPage() {
       {/* Footer Info */}
       <div className="flex items-center justify-between px-2 text-sm text-muted-foreground mt-4">
         <p>
-          Hiển thị <strong>{filteredItems.length}</strong> / <strong>{items.length}</strong> trình độ
+          Hiển thị <strong>{items.length}</strong> / <strong>{paginationInfo?.total || 0}</strong> trình độ
         </p>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" disabled className="h-8">Trước</Button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold shadow-sm">1</div>
-          <Button variant="ghost" size="sm" disabled className="h-8">Sau</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="h-8"
+          >
+            Trước
+          </Button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold shadow-sm">
+            {currentPage}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(paginationInfo?.last_page || 1, prev + 1))}
+            disabled={!paginationInfo || currentPage === paginationInfo.last_page}
+            className="h-8"
+          >
+            Sau
+          </Button>
         </div>
       </div>
 

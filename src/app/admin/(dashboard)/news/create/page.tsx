@@ -33,7 +33,7 @@ const articleSchema = z.object({
     title: z.string().min(5, "Tiêu đề phải có ít nhất 5 ký tự"),
     content: z.string().min(10, "Nội dung phải có ít nhất 10 ký tự"),
     image: z.any().optional(),
-    status: z.number(),
+    status: z.coerce.number(),
 })
 
 type FormValues = z.infer<typeof articleSchema>
@@ -60,8 +60,8 @@ export default function CreateArticlePage() {
 
     const statusOptions = [
         { value: 0, label: "Bản nháp", color: "bg-slate-500" },
-        { value: 1, label: "Đã xuất bản", color: "bg-emerald-500" },
-        { value: 2, label: "Lưu trữ", color: "bg-rose-500" },
+        { value: 2, label: "Đã xuất bản", color: "bg-emerald-500" },
+        { value: 1, label: "Lưu trữ", color: "bg-rose-500" },
     ]
 
     const onImageUploadClick = (target: "banner" | "quill") => {

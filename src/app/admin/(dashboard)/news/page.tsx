@@ -130,16 +130,17 @@ export default function NewsPage() {
         }
     }
 
-    const getStatusBadge = (status: News['status']) => {
-        switch (status) {
-            case 1:
+    const getStatusBadge = (status: any) => {
+        const s = String(status);
+        switch (s) {
+            case "2":
                 return <Badge className="bg-emerald-500 hover:bg-emerald-600">Đã xuất bản</Badge>
-            case 0:
+            case "0":
                 return <Badge variant="secondary">Bản nháp</Badge>
-            case 2:
+            case "1":
                 return <Badge variant="destructive">Lưu trữ</Badge>
             default:
-                return <Badge variant="outline">{status}</Badge>
+                return <Badge variant="outline">{s}</Badge>
         }
     }
 

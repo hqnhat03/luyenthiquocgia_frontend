@@ -1,6 +1,6 @@
 "use client"
 
-import { Can } from "@/components/auth/can"
+
 import { usePermission } from "@/hooks/use-permission"
 import api from "@/lib/axios"
 import { type Role } from "@/types/RoleType"
@@ -81,6 +81,9 @@ export default function RolesPage() {
   const [items, setItems] = React.useState<Role[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
 
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [paginationInfo, setPaginationInfo] = React.useState<{ total: number; last_page: number } | null>(null)
+
 
   // Create/Edit Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -134,15 +137,13 @@ export default function RolesPage() {
       <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
         Quản lý vai trò
       </h2>
-      <Can permission="role_create">
-        <Button
-          className="h-10 px-6 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
-          onClick={() => onOpenModal()}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          <span className="text-sm font-bold">Thêm vai trò</span>
-        </Button>
-      </Can>
+      <Button
+        className="h-10 px-6 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 transition-all active:scale-95 whitespace-nowrap"
+        onClick={() => onOpenModal()}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        <span className="text-sm font-bold">Thêm vai trò</span>
+      </Button>
     </div>
   ), [onOpenModal]);
 
@@ -200,9 +201,29 @@ export default function RolesPage() {
     }
   }
 
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredItems = React.useMemo(() => {
+    if (!search) return items
+    const s = search.toLowerCase()
+    return items.filter(item =>
+      item.name.toLowerCase().includes(s)
+    )
+  }, [items, search])
+
+  const paginatedItems = React.useMemo(() => {
+    const start = (currentPage - 1) * 10
+    return filteredItems.slice(start, start + 10)
+  }, [filteredItems, currentPage])
+
+  React.useEffect(() => {
+    setPaginationInfo({
+      total: filteredItems.length,
+      last_page: Math.ceil(filteredItems.length / 10) || 1
+    })
+  }, [filteredItems])
+
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
 
   if (!hasPermission("role_list")) return null
 
@@ -247,7 +268,7 @@ export default function RolesPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : filteredItems.length === 0 ? (
+              ) : paginatedItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={2} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -257,40 +278,36 @@ export default function RolesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredItems.map((item) => (
+                paginatedItems.map((item) => (
                   <TableRow key={item.id} className="group hover:bg-primary/[0.02] transition-colors">
                     <TableCell className="font-medium text-foreground/90 py-4 pl-6">
                       {item.name}
                     </TableCell>
                     <TableCell className="text-center py-4">
-                      <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-center gap-1">
                         {item.name !== "super_admin" && (
                           <div className="flex justify-center gap-1">
-                            <Can permission="role_edit">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors rounded-xl"
-                                title="Chỉnh sửa"
-                                onClick={() => onOpenModal(item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Can>
-                            <Can permission="role_delete">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors rounded-xl"
-                                title="Xóa"
-                                onClick={() => {
-                                  setRoleToDelete(item)
-                                  setIsDeleteDialogOpen(true)
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </Can>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors rounded-xl"
+                              title="Chỉnh sửa"
+                              onClick={() => onOpenModal(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors rounded-xl"
+                              title="Xóa"
+                              onClick={() => {
+                                setRoleToDelete(item)
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -300,6 +317,36 @@ export default function RolesPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div className="flex items-center justify-between px-2 text-sm text-muted-foreground mt-4">
+        <p>
+          Hiển thị <strong>{items.length}</strong> / <strong>{paginationInfo?.total || 0}</strong> vai trò
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="h-8"
+          >
+            Trước
+          </Button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold shadow-sm">
+            {currentPage}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(paginationInfo?.last_page || 1, prev + 1))}
+            disabled={!paginationInfo || currentPage === paginationInfo.last_page}
+            className="h-8"
+          >
+            Sau
+          </Button>
         </div>
       </div>
 

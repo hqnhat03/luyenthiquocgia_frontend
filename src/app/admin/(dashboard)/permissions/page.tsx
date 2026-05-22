@@ -1,5 +1,6 @@
 'use client';
 
+import { PermissionRoute } from '@/components/auth/PermissionRoute';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,10 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { usePermission } from "@/hooks/use-permission";
 import api from '@/lib/axios';
 import { cn } from '@/lib/utils';
 import { useLayoutStore } from "@/store/layout-store";
+import { usePermissionCacheStore } from '@/store/usePermissionCacheStore';
+import { usePermissionStore } from '@/store/permission-store';
 import {
   AlertCircle,
   Book,
@@ -37,7 +39,6 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
-import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -63,7 +64,7 @@ interface RoleItem {
   name: string;
 }
 
-interface NewPermissionData {
+interface PermissionData {
   roles: RoleItem[];
   screens: Screen[];
 }
@@ -83,20 +84,23 @@ const GROUP_CONFIG: Record<string, { label: string; icon: React.ComponentType }>
   'other': { label: 'Khác', icon: Settings2 }
 };
 
-export default function PermissionsPage() {
-  const router = useRouter()
-  const { hasPermission, isInitialized, isLoading: isPermissionLoading } = usePermission()
+/**
+ * Các screen_code đặc biệt — checkbox bị disabled, không thể bỏ quyền
+ */
+const specialScreenCodes = ["A_02_00", "A_02_01", "A_02_02", "A_02_03"];
+
+/**
+ * Các screen_code bị ẩn khỏi bảng phân quyền
+ */
+const hiddenScreenCodes = ["A_00_02", "A_00_01", "A_00_00"];
+
+function PermissionsPageContent() {
   const setHeaderContent = useLayoutStore((state) => state.setHeaderContent)
 
-  // Kiểm tra quyền truy cập trang phân quyền
-  React.useEffect(() => {
-    if (isInitialized && !isPermissionLoading && !hasPermission("permission_manage")) {
-      toast.error("Bạn không có quyền truy cập trang này")
-      router.push("/admin")
-    }
-  }, [hasPermission, isInitialized, isPermissionLoading, router])
+  const cacheStore = usePermissionCacheStore()
+  const permissionStore = usePermissionStore()
 
-  const [data, setData] = useState<NewPermissionData | null>(null);
+  const [data, setData] = useState<PermissionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,38 +110,64 @@ export default function PermissionsPage() {
   const [rolePermissions, setRolePermissions] = useState<Record<number, number[]>>({});
   const [initialRolePermissions, setInitialRolePermissions] = useState<Record<number, number[]>>({});
 
+  /**
+   * Build permissionsMap từ danh sách permission items
+   * Roles và Screens lấy từ API riêng, không derive từ permissions
+   */
+  const buildPermissionsMap = (
+    items: Omit<PermissionItem, 'created_at' | 'updated_at'>[]
+  ): Record<number, number[]> => {
+    const map: Record<number, number[]> = {};
+    items.forEach(item => {
+      // Ép kiểu về number đề phòng API trả về string
+      const roleId = Number(item.role_id);
+      const screenId = Number(item.screen_id);
+      if (!map[roleId]) map[roleId] = [];
+      if (!map[roleId].includes(screenId)) {
+        map[roleId].push(screenId);
+      }
+    });
+    return map;
+  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/admin/permissions?page=1&per_page=500');
-      const items: PermissionItem[] = response.data?.data?.items || [];
-      
-      const rolesMap = new Map<number, string>();
-      const screensMap = new Map<number, { name: string; code: string }>();
-      const permissionsMap: Record<number, number[]> = {};
+      // Gọi song song 3 API để lấy đầy đủ dữ liệu
+      // /admin/roles và /admin/screens trả về toàn bộ danh sách,
+      // không phụ thuộc vào việc role đó đã có quyền hay chưa
+      const [rolesRes, screensRes, permsRes] = await Promise.all([
+        api.get('/admin/roles'),
+        api.get('/admin/screens', { params: { page: 1, per_page: 500 } }),
+        api.get('/admin/permissions', { params: { page: 1, per_page: 500 } }),
+      ]);
 
-      items.forEach(item => {
-        rolesMap.set(item.role_id, item.role_name);
-        screensMap.set(item.screen_id, { name: item.screen_name, code: item.screen_code });
-        
-        if (!permissionsMap[item.role_id]) {
-          permissionsMap[item.role_id] = [];
-        }
-        if (!permissionsMap[item.role_id].includes(item.screen_id)) {
-          permissionsMap[item.role_id].push(item.screen_id);
-        }
-      });
+      // /admin/roles → { status, data: [{ id, name }, ...] }
+      // Ép kiểu id về number đề phòng API trả về string
+      const roles: RoleItem[] = (rolesRes.data?.data || []).map((r: RoleItem) => ({
+        ...r,
+        id: Number(r.id),
+      }));
+      // /admin/screens → { status, data: { items: [...], total, ... } }
+      const rawScreens: Screen[] = screensRes.data?.data?.items || screensRes.data?.data || [];
+      const allScreens: Screen[] = rawScreens.map((s: Screen) => ({
+        ...s,
+        id: Number(s.id),
+      }));
+      const items: PermissionItem[] = permsRes.data?.data?.items || [];
 
-      const roles = Array.from(rolesMap.entries()).map(([id, name]) => ({ id, name }));
-      const screens = Array.from(screensMap.entries()).map(([id, data]) => ({ id, name: data.name, code: data.code }));
+      const screens = allScreens.filter(s => !hiddenScreenCodes.includes(s.code));
+      const permissionsMap = buildPermissionsMap(items);
+
+      // Lưu cache
+      cacheStore.setCache({ screens, roles, permissions: items });
 
       setData({ roles, screens });
       setRolePermissions(permissionsMap);
       setInitialRolePermissions(permissionsMap);
 
       if (roles.length > 0 && !selectedRole) {
-        setSelectedRole(roles[0].id);
+        setSelectedRole(Number(roles[0].id));
       }
     } catch (error) {
       console.error('Error fetching permissions:', error);
@@ -147,10 +177,16 @@ export default function PermissionsPage() {
     }
   };
 
+
   useEffect(() => {
+    // Xóa cache lần này để đảm bảo dữ liệu mới nhất với đầy đủ roles/screens
+    // Cache cũ có thể được build từ /admin/permissions (thiếu roles chưa có quyền)
+    cacheStore.clearCache();
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+
 
   const pageHeader = React.useMemo(() => (
     <div className="flex flex-1 items-center justify-between gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
@@ -167,17 +203,26 @@ export default function PermissionsPage() {
         <span className="text-sm font-bold">Làm mới</span>
       </Button>
     </div>
-  ), [fetchData, loading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [loading]);
 
   React.useEffect(() => {
     setHeaderContent(pageHeader)
     return () => setHeaderContent(null)
   }, [setHeaderContent, pageHeader])
 
-  const handleTogglePermission = (roleId: number, screenId: number) => {
+  const handleTogglePermission = (roleId: number, screenId: number, screenCode: string) => {
     const role = data?.roles.find(r => r.id === roleId);
+
+    // Super Admin không thể chỉnh sửa
     if (role?.name === 'super_admin' || role?.name === 'Super Admin') {
       toast.error('Không thể chỉnh sửa quyền của Super Admin');
+      return;
+    }
+
+    // Các màn hình đặc biệt không thể bỏ quyền
+    if (specialScreenCodes.includes(screenCode)) {
+      toast.error('Không thể thay đổi quyền của màn hình này');
       return;
     }
 
@@ -218,6 +263,10 @@ export default function PermissionsPage() {
       if (response.data?.status === 'success' || response.data?.success) {
         toast.success(response.data?.message || `Cập nhật quyền thành công`);
         setInitialRolePermissions(prev => ({ ...prev, [roleId]: [...current] }));
+
+        // Cập nhật lại usePermissionStore sau khi save
+        // (Nếu role đang chỉnh là role của user hiện tại)
+        cacheStore.clearCache();
       } else {
         toast.error(response.data?.message || 'Lỗi khi cập nhật quyền');
       }
@@ -233,9 +282,15 @@ export default function PermissionsPage() {
     if (!data) return false;
     const current = rolePermissions[roleId] || [];
     const original = initialRolePermissions[roleId] || [];
-    
+
     if (current.length !== original.length) return true;
     return !current.every(p => original.includes(p));
+  };
+
+  const isSuperAdminRole = (roleId: number | null) => {
+    if (!roleId) return false;
+    const role = data?.roles.find(r => r.id === roleId);
+    return role?.name === 'super_admin' || role?.name === 'Super Admin';
   };
 
   // Grouping logic
@@ -289,8 +344,6 @@ export default function PermissionsPage() {
     );
   }
 
-  if (!hasPermission("permission_manage")) return null
-
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700">
       <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -310,7 +363,7 @@ export default function PermissionsPage() {
                 {data?.roles.map(role => (
                   <button
                     key={role.id}
-                    onClick={() => setSelectedRole(role.id)}
+                    onClick={() => setSelectedRole(Number(role.id))}
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-300 group",
                       selectedRole === role.id
@@ -349,7 +402,7 @@ export default function PermissionsPage() {
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white capitalize">
                       {data?.roles.find(r => r.id === selectedRole)?.name?.replace('_', ' ')}
                     </h2>
-                    {(data?.roles.find(r => r.id === selectedRole)?.name === 'super_admin' || data?.roles.find(r => r.id === selectedRole)?.name === 'Super Admin') && (
+                    {isSuperAdminRole(selectedRole) && (
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                         ReadOnly
                       </Badge>
@@ -386,7 +439,7 @@ export default function PermissionsPage() {
               <div className="mt-8 flex items-center gap-4 text-sm font-medium text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  <span>{rolePermissions[selectedRole || 0]?.length || 0} quyền đã cấp</span>
+                  <span>{isSuperAdminRole(selectedRole) ? (data?.screens.length || 0) : (rolePermissions[selectedRole || 0]?.length || 0)} quyền đã cấp</span>
                 </div>
                 <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
                 <div className="flex items-center gap-2">
@@ -421,8 +474,12 @@ export default function PermissionsPage() {
                         <TableCell className="pr-8 ">
                           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 py-2 pr-4">
                             {group.permissions.map(screen => {
-                              const isChecked = rolePermissions[selectedRole || 0]?.includes(screen.id);
-                              const isReadOnly = data?.roles.find(r => r.id === selectedRole)?.name === 'super_admin' || data?.roles.find(r => r.id === selectedRole)?.name === 'Super Admin';
+                              const isChecked = isSuperAdminRole(selectedRole)
+                                ? true  // Super Admin luôn có tất cả quyền
+                                // Dùng loose == để tránh lỗi string vs number từ API
+                                // eslint-disable-next-line eqeqeq
+                                : (rolePermissions[selectedRole || 0]?.some(id => id == Number(screen.id)) ?? false);
+                              const isReadOnly = isSuperAdminRole(selectedRole) || specialScreenCodes.includes(screen.code);
 
                               return (
                                 <label
@@ -438,7 +495,7 @@ export default function PermissionsPage() {
                                   <Checkbox
                                     id={`screen-${screen.id}`}
                                     checked={isChecked}
-                                    onCheckedChange={() => handleTogglePermission(selectedRole || 0, screen.id)}
+                                    onCheckedChange={() => handleTogglePermission(selectedRole || 0, screen.id, screen.code)}
                                     disabled={isReadOnly}
                                     className={cn(
                                       "rounded-md w-5 h-5 transition-all",
@@ -495,5 +552,17 @@ export default function PermissionsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Trang phân quyền màn hình
+ * Yêu cầu screen_code: A_02_40
+ */
+export default function PermissionsPage() {
+  return (
+    <PermissionRoute requiredCode="A_02_40">
+      <PermissionsPageContent />
+    </PermissionRoute>
   );
 }

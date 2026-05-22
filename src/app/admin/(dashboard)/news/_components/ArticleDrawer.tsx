@@ -31,15 +31,15 @@ const articleSchema = z.object({
     title: z.string().min(5, "Tiêu đề phải có ít nhất 5 ký tự"),
     content: z.string().min(10, "Nội dung phải có ít nhất 10 ký tự"),
     image: z.string().url("Vui lòng nhập URL ảnh hợp lệ").or(z.literal("")).optional(),
-    status: z.number(),
+    status: z.coerce.number(),
 })
 
 type FormValues = z.infer<typeof articleSchema>
 
 const statusOptions = [
     { value: 0, label: "Bản nháp", activeClass: "bg-slate-100 border-slate-400 text-slate-700 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-200" },
-    { value: 1, label: "Đã xuất bản", activeClass: "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300" },
-    { value: 2, label: "Lưu trữ", activeClass: "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300" },
+    { value: 2, label: "Đã xuất bản", activeClass: "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-500 dark:text-emerald-300" },
+    { value: 1, label: "Lưu trữ", activeClass: "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950 dark:border-rose-500 dark:text-rose-300" },
 ]
 
 interface ArticleDrawerProps {
@@ -63,7 +63,7 @@ export function ArticleDrawer({
             title: article?.title ?? "",
             content: article?.content ?? "",
             image: article?.image ?? "",
-            status: article?.status ?? 0,
+            status: article?.status !== undefined ? Number(article.status) : 0,
         },
     })
 
@@ -73,7 +73,7 @@ export function ArticleDrawer({
                 title: article?.title ?? "",
                 content: article?.content ?? "",
                 image: article?.image ?? "",
-                status: article?.status ?? 0,
+                status: article?.status !== undefined ? Number(article.status) : 0,
             })
         }
     }, [article, form, open])

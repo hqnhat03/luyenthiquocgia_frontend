@@ -35,7 +35,7 @@ const articleSchema = z.object({
     content: z.string().min(10, "Nội dung phải có ít nhất 10 ký tự"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     image: z.any().optional(),
-    status: z.number(),
+    status: z.coerce.number(),
 })
 
 type FormValues = z.infer<typeof articleSchema>
@@ -71,7 +71,7 @@ export default function EditArticlePage() {
                 title: data.title,
                 content: data.content,
                 image: data.image_url || "",
-                status: data.status,
+                status: Number(data.status),
             })
         } catch (err) {
             console.error("Fetch error:", err)
@@ -90,8 +90,8 @@ export default function EditArticlePage() {
 
     const statusOptions = [
         { value: 0, label: "Bản nháp", color: "bg-slate-500" },
-        { value: 1, label: "Đã xuất bản", color: "bg-emerald-500" },
-        { value: 2, label: "Lưu trữ", color: "bg-rose-500" },
+        { value: 2, label: "Đã xuất bản", color: "bg-emerald-500" },
+        { value: 1, label: "Lưu trữ", color: "bg-rose-500" },
     ]
 
     const onImageUploadClick = (target: "banner" | "quill") => {

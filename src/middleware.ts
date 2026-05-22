@@ -32,7 +32,7 @@ export function middleware(request: NextRequest) {
 
   // Helper to handle protected routes with optional public paths
   const handleProtectedDomain = (domainPrefix: string, publicRoutes: string[] = []) => {
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
     const isPublicRoute = publicRoutes.some((route) =>
       route === '/'
         ? pathname === '/' || pathname === ''

@@ -4,19 +4,33 @@ import * as React from "react"
 import { usePermission } from "@/hooks/use-permission"
 
 interface CanProps {
+  /** screen_code (ví dụ: "A_02_02") hoặc permissionKey (ví dụ: "admin:view") */
   permission: string | string[]
-  action?: 'view' | 'add' | 'edit' | 'delete'
   children: React.ReactNode
   fallback?: React.ReactNode
+  /** Ẩn hoàn toàn khi đang loading (tránh flash) */
   hideWhileLoading?: boolean
 }
 
-export const Can = ({ 
-  permission, 
-  action = 'view', 
-  children, 
+/**
+ * Can — Conditional render dựa trên quyền
+ *
+ * ```tsx
+ * <Can permission="A_02_02">
+ *   <AddAdminButton />
+ * </Can>
+ *
+ * // Hoặc dùng permissionKey
+ * <Can permission="admin:view">
+ *   <AdminsPage />
+ * </Can>
+ * ```
+ */
+export const Can = ({
+  permission,
+  children,
   fallback = null,
-  hideWhileLoading = false
+  hideWhileLoading = false,
 }: CanProps) => {
   const { hasPermission, isLoading, isInitialized } = usePermission()
 
@@ -24,7 +38,7 @@ export const Can = ({
     return null
   }
 
-  if (!hasPermission(permission, action)) {
+  if (!hasPermission(permission)) {
     return <>{fallback}</>
   }
 

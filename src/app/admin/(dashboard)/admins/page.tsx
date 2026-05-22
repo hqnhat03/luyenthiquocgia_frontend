@@ -391,34 +391,18 @@ export default function AdminsPage() {
 
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {admin.role ? (
-                          <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-normal text-[10px] flex items-center gap-1">
-                            {admin.role.name}
-                          </Badge>
-                        ) : admin.roles && admin.roles.length > 0 ? (
-                          admin.roles.map((role, idx) => {
-                            const roleName = typeof role === "string" ? role : role.name;
-                            const roleKey = typeof role === "string" ? role : role.id?.toString() || String(idx);
-                            return (
-                              <Badge key={roleKey} variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-normal text-[10px] flex items-center gap-1">
-                                {roleName}
-                              </Badge>
-                            );
-                          })
-                        ) : admin.role_id ? (
-                          (() => {
-                            const role = roles.find(r => r.id === admin.role_id);
-                            return role ? (
-                              <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-normal text-[10px] flex items-center gap-1">
-                                {role.name}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">ID: {admin.role_id}</span>
-                            );
-                          })()
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Chưa phân vai trò</span>
-                        )}
+                        {(() => {
+                          if (isLoadingRoles) return <Skeleton className="h-5 w-20 rounded-full" />;
+                          // eslint-disable-next-line eqeqeq
+                          const role = roles.find(r => r.id == admin.role_id);
+                          return role ? (
+                            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-normal text-[10px] flex items-center gap-1">
+                              {role.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Chưa phân vai trò</span>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell>

@@ -12,6 +12,7 @@ import {
     RefreshCcw,
     Search,
     SearchX,
+    Trash2,
 } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
@@ -50,27 +51,37 @@ import { useRouter } from "next/navigation"
 
 interface CourseRegistration {
     id: number
-    course_id: number
-    name: string
+    course_id: string
+    student_id: string | null
+    first_name: string
+    last_name: string
     email: string
-    phone: string
-    status: "pending" | "completed" | "cancelled"
+    tel: string | null
+    registrant_type: string  // "0" = Học sinh, "1" = Nhân viên, "2" = Người mới
+    status: string           // "0" = Chưa xử lý, "1" = Đang xử lý, "2" = Hoàn thành
     course_name: string
 }
 
+// CourseRegistrantType: STUDENT=0, EMPLOYEE=1, NEWCOMER=2
+const registrantTypeConfig: Record<string, { label: string; color: string }> = {
+    "0": { label: "Học sinh",   color: "bg-sky-500/10 text-sky-600 border-sky-200" },
+    "1": { label: "Nhân viên",  color: "bg-violet-500/10 text-violet-600 border-violet-200" },
+    "2": { label: "Người mới",  color: "bg-orange-500/10 text-orange-600 border-orange-200" },
+}
 
-const statusConfig = {
-    pending: {
+// CourseRegistrationStatus: UNPROCESSED=0, IN_PROGRESS=1, COMPLETED=2
+const statusConfig: Record<string, { label: string; color: string }> = {
+    "0": {
         label: "Chưa xử lý",
         color: "bg-amber-500/10 text-amber-600 border-amber-200",
     },
-    completed: {
-        label: "Hoàn Thành",
-        color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+    "1": {
+        label: "Đang xử lý",
+        color: "bg-blue-500/10 text-blue-600 border-blue-200",
     },
-    cancelled: {
-        label: "Hủy",
-        color: "bg-rose-500/10 text-rose-600 border-rose-200",
+    "2": {
+        label: "Hoàn thành",
+        color: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
     },
 }
 
@@ -90,8 +101,18 @@ export default function CourseRegistrationsPage() {
 
     const [registrations, setRegistrations] = React.useState<CourseRegistration[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
-    const [search, setSearch] = React.useState("")
-    const [statusFilter, setStatusFilter] = React.useState<string>("all")
+
+    // Filter state
+    const [filterName, setFilterName] = React.useState("")
+    const [filterEmail, setFilterEmail] = React.useState("")
+    const [filterPhone, setFilterPhone] = React.useState("")
+    const [filterCourseName, setFilterCourseName] = React.useState("")
+    const [filterStatus, setFilterStatus] = React.useState("all")
+
+    const debouncedName = useDebounce(filterName, 500)
+    const debouncedEmail = useDebounce(filterEmail, 500)
+    const debouncedPhone = useDebounce(filterPhone, 500)
+    const debouncedCourseName = useDebounce(filterCourseName, 500)
 
     // Pagination and Sorting State
     const [currentPage, setCurrentPage] = React.useState(1)
@@ -101,12 +122,14 @@ export default function CourseRegistrationsPage() {
     const [totalItems, setTotalItems] = React.useState(0)
     const [lastPage, setLastPage] = React.useState(1)
 
-    const debouncedSearch = useDebounce(search, 500)
-
     // Edit status state
     const [editingRegistration, setEditingRegistration] = React.useState<CourseRegistration | null>(null)
-    const [selectedStatus, setSelectedStatus] = React.useState<CourseRegistration["status"] | null>(null)
+    const [selectedStatus, setSelectedStatus] = React.useState<string | null>(null)
     const [isUpdating, setIsUpdating] = React.useState(false)
+
+    // Delete state
+    const [deletingRegistration, setDeletingRegistration] = React.useState<CourseRegistration | null>(null)
+    const [isDeleting, setIsDeleting] = React.useState(false)
 
     React.useEffect(() => {
         if (editingRegistration) {
@@ -125,19 +148,23 @@ export default function CourseRegistrationsPage() {
             const response = await api.get("/admin/course-registrations", {
                 params: {
                     page: currentPage,
-                    per_page: pageSize,
-                    search: debouncedSearch,
-                    status: statusFilter !== "all" ? statusFilter : undefined,
-                    sort_by: sortBy,
-                    sort_order: sortOrder,
+                    pagination: pageSize,
+                    name: debouncedName || undefined,
+                    email: debouncedEmail || undefined,
+                    phone: debouncedPhone || undefined,
+                    course_name: debouncedCourseName || undefined,
+                    status: filterStatus !== "all" ? filterStatus : undefined,
+                    order_by: sortBy,
+                    direction: sortOrder,
                 },
             })
 
             const result = response.data
-            if (result.success) {
-                setRegistrations(result.data || [])
-                setTotalItems(result.meta?.total || 0)
-                setLastPage(result.meta?.last_page || 1)
+            if (result.status === "success") {
+                const pageData = result.data
+                setRegistrations(pageData.data || [])
+                setTotalItems(pageData.total || 0)
+                setLastPage(pageData.last_page || 1)
             }
         } catch (error) {
             if (error instanceof AxiosError) {
@@ -147,7 +174,7 @@ export default function CourseRegistrationsPage() {
             setIsLoading(false)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, pageSize, debouncedSearch, statusFilter, sortBy, sortOrder]) // Remove hasPermission
+    }, [currentPage, pageSize, debouncedName, debouncedEmail, debouncedPhone, debouncedCourseName, filterStatus, sortBy, sortOrder])
 
     const handleSort = (field: string) => {
         if (sortBy === field) {
@@ -192,11 +219,12 @@ export default function CourseRegistrationsPage() {
 
         setIsUpdating(true)
         try {
-            const response = await api.patch(`/admin/course-registrations/${editingRegistration.id}`, {
-                status: selectedStatus
+            const response = await api.post("/admin/course-registrations/update", {
+                id: editingRegistration.id,
+                status: parseInt(selectedStatus),
             })
 
-            if (response.data.success) {
+            if (response.data.status === "success") {
                 toast.success("Cập nhật trạng thái thành công")
                 setRegistrations(prev => prev.map(reg => reg.id === editingRegistration.id ? { ...reg, status: selectedStatus } : reg))
                 setEditingRegistration(null)
@@ -210,16 +238,43 @@ export default function CourseRegistrationsPage() {
         }
     }
 
+    const handleDelete = async () => {
+        if (!deletingRegistration) return
+
+        setIsDeleting(true)
+        try {
+            const response = await api.delete("/admin/course-registrations/delete", {
+                data: { id: deletingRegistration.id },
+            })
+
+            if (response.data.status === "success") {
+                toast.success("Xóa đăng ký thành công")
+                setRegistrations(prev => prev.filter(reg => reg.id !== deletingRegistration.id))
+                setTotalItems(prev => prev - 1)
+                setDeletingRegistration(null)
+            }
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                toast.error(error.response?.data?.message || "Lỗi khi xóa đăng ký")
+            }
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
     const statusLabels: Record<string, string> = {
         "all": "Tất cả trạng thái",
-        "pending": "Chưa xử lý",
-        "completed": "Hoàn Thành",
-        "cancelled": "Hủy",
+        "0": "Chưa xử lý",
+        "1": "Đang xử lý",
+        "2": "Hoàn thành",
     }
 
     const handleReset = () => {
-        setSearch("")
-        setStatusFilter("all")
+        setFilterName("")
+        setFilterEmail("")
+        setFilterPhone("")
+        setFilterCourseName("")
+        setFilterStatus("all")
         setCurrentPage(1)
         setSortBy("created_at")
         setSortOrder("desc")
@@ -232,36 +287,70 @@ export default function CourseRegistrationsPage() {
             <Card className="border-none shadow-sm bg-muted/30 backdrop-blur-md">
                 <CardContent className="p-4">
                     <div className="flex flex-wrap justify-start gap-4">
-                        <div className="relative w-full md:w-64">
+                        {/* Course name */}
+                        <div className="relative w-full md:w-52">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Tìm tên, email hoặc SĐT..."
+                                placeholder="Tìm theo khóa học..."
                                 className="pl-9 bg-background border-muted-foreground/20 focus-visible:ring-primary/20 transition-all"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                value={filterCourseName}
+                                onChange={(e) => { setFilterCourseName(e.target.value); setCurrentPage(1) }}
                             />
                         </div>
 
+                        {/* Name */}
+                        <div className="relative w-full md:w-52">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Tìm theo tên..."
+                                className="pl-9 bg-background border-muted-foreground/20 focus-visible:ring-primary/20 transition-all"
+                                value={filterName}
+                                onChange={(e) => { setFilterName(e.target.value); setCurrentPage(1) }}
+                            />
+                        </div>
+
+                        {/* Email */}
+                        <div className="relative w-full md:w-52">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Tìm theo email..."
+                                className="pl-9 bg-background border-muted-foreground/20 focus-visible:ring-primary/20 transition-all"
+                                value={filterEmail}
+                                onChange={(e) => { setFilterEmail(e.target.value); setCurrentPage(1) }}
+                            />
+                        </div>
+
+                        {/* Phone */}
+                        <div className="relative w-full md:w-44">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Tìm theo SĐT..."
+                                className="pl-9 bg-background border-muted-foreground/20 focus-visible:ring-primary/20 transition-all"
+                                value={filterPhone}
+                                onChange={(e) => { setFilterPhone(e.target.value); setCurrentPage(1) }}
+                            />
+                        </div>
+
+                        {/* Status */}
                         <Select
-                            value={statusLabels[statusFilter]}
-                            onValueChange={(val) => {
-                                const key = Object.keys(statusLabels).find(k => statusLabels[k] === val);
-                                setStatusFilter(key || "all");
-                                setCurrentPage(1);
+                            value={statusLabels[filterStatus] ?? statusLabels["all"]}
+                            onValueChange={(label) => {
+                                const key = Object.keys(statusLabels).find(k => statusLabels[k] === label) ?? "all"
+                                setFilterStatus(key)
+                                setCurrentPage(1)
                             }}
                         >
-                            <SelectTrigger className="bg-background border-muted-foreground/20">
+                            <SelectTrigger className="w-full md:w-44 bg-background border-muted-foreground/20">
                                 <SelectValue placeholder="Trạng thái" />
                             </SelectTrigger>
                             <SelectContent>
-                                {Object.values(statusLabels).map((label) => (
-                                    <SelectItem key={label} value={label}>{label}</SelectItem>
+                                {Object.entries(statusLabels).map(([key, label]) => (
+                                    <SelectItem key={key} value={label}>{label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
-                        <div className="flex-1">
-                        </div>
+                        <div className="flex-1" />
 
                         <Button
                             variant="outline"
@@ -271,9 +360,6 @@ export default function CourseRegistrationsPage() {
                             <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
                         </Button>
                     </div>
-
-
-
                 </CardContent>
             </Card>
 
@@ -294,11 +380,11 @@ export default function CourseRegistrationsPage() {
                             </TableHead>
                             <TableHead
                                 className="font-bold cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => handleSort("name")}
+                                onClick={() => handleSort("last_name")}
                             >
                                 <div className="flex items-center">
-                                    Khách hàng
-                                    <SortIcon field="name" />
+                                    Người đăng ký
+                                    <SortIcon field="last_name" />
                                 </div>
                             </TableHead>
                             <TableHead
@@ -312,13 +398,14 @@ export default function CourseRegistrationsPage() {
                             </TableHead>
                             <TableHead
                                 className="font-bold cursor-pointer hover:text-primary transition-colors"
-                                onClick={() => handleSort("phone")}
+                                onClick={() => handleSort("tel")}
                             >
                                 <div className="flex items-center">
                                     Số điện thoại
-                                    <SortIcon field="phone" />
+                                    <SortIcon field="tel" />
                                 </div>
                             </TableHead>
+                            <TableHead className="font-bold text-center">Loại đăng ký</TableHead>
                             <TableHead
                                 className="font-bold text-center cursor-pointer hover:text-primary transition-colors"
                                 onClick={() => handleSort("status")}
@@ -340,12 +427,13 @@ export default function CourseRegistrationsPage() {
                                     <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                                     <TableCell><div className="flex justify-center"><Skeleton className="h-7 w-24 rounded-full" /></div></TableCell>
+                                    <TableCell><div className="flex justify-center"><Skeleton className="h-7 w-24 rounded-full" /></div></TableCell>
                                     <TableCell className="text-center"><Skeleton className="h-8 w-32 mx-auto rounded-md" /></TableCell>
                                 </TableRow>
                             ))
                         ) : registrations.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-80 text-center">
+                                <TableCell colSpan={7} className="h-80 text-center">
                                     <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground animate-in zoom-in-95 duration-500">
                                         <div className="p-4 bg-muted rounded-full">
                                             <SearchX className="h-12 w-12 opacity-20" />
@@ -362,7 +450,9 @@ export default function CourseRegistrationsPage() {
                             </TableRow>
                         ) : (
                             registrations.map((reg) => {
-                                const config = statusConfig[reg.status]
+                                const statusCfg = statusConfig[reg.status] ?? { label: reg.status, color: "bg-muted text-muted-foreground border-muted" }
+                                const typeCfg = registrantTypeConfig[reg.registrant_type] ?? { label: reg.registrant_type, color: "bg-muted text-muted-foreground border-muted" }
+                                const fullName = `${reg.last_name} ${reg.first_name}`.trim()
                                 return (
                                     <TableRow key={reg.id} className="hover:bg-primary/[0.02] transition-all duration-300 group border-muted/10">
                                         <TableCell>
@@ -370,7 +460,7 @@ export default function CourseRegistrationsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-bold text-foreground group-hover:text-primary transition-colors">
-                                                {reg.name}
+                                                {fullName}
                                             </span>
                                         </TableCell>
                                         <TableCell>
@@ -380,20 +470,28 @@ export default function CourseRegistrationsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-sm text-muted-foreground/80">
-                                                {reg.phone}
+                                                {reg.tel ?? <span className="italic text-muted-foreground/40">—</span>}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge className={cn(
-                                                "font-bold border shadow-sm px-4 py-1.5 rounded-full transition-all duration-300 group-hover:scale-105 text-sm",
-                                                config.color
+                                                "font-bold border shadow-sm px-3 py-1 rounded-full text-xs",
+                                                typeCfg.color
                                             )}>
-                                                {config.label}
+                                                {typeCfg.label}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            {hasPermission("course_registration_edit") && (
-                                                <div className="flex justify-center">
+                                            <Badge className={cn(
+                                                "font-bold border shadow-sm px-4 py-1.5 rounded-full transition-all duration-300 group-hover:scale-105 text-sm",
+                                                statusCfg.color
+                                            )}>
+                                                {statusCfg.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="flex justify-center gap-1">
+                                                {hasPermission("course_registration_edit") && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -403,8 +501,19 @@ export default function CourseRegistrationsPage() {
                                                     >
                                                         <Edit2 className="h-4 w-4" />
                                                     </Button>
-                                                </div>
-                                            )}
+                                                )}
+                                                {hasPermission("course_registration_delete") && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-90 shadow-none"
+                                                        onClick={() => setDeletingRegistration(reg)}
+                                                        title="Xóa đăng ký"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 )
@@ -515,18 +624,28 @@ export default function CourseRegistrationsPage() {
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Khách hàng</span>
-                                    <span className="text-sm font-semibold">{editingRegistration?.name}</span>
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Người đăng ký</span>
+                                    <span className="text-sm font-semibold">
+                                        {editingRegistration ? `${editingRegistration.last_name} ${editingRegistration.first_name}`.trim() : ""}
+                                    </span>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Số điện thoại</span>
-                                    <span className="text-sm font-semibold text-primary">{editingRegistration?.phone}</span>
+                                    <span className="text-sm font-semibold text-primary">{editingRegistration?.tel ?? "—"}</span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-1 pt-1">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Địa chỉ Email</span>
-                                <span className="text-sm font-medium text-muted-foreground">{editingRegistration?.email}</span>
+                            <div className="grid grid-cols-2 gap-4 pt-1">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Địa chỉ Email</span>
+                                    <span className="text-sm font-medium text-muted-foreground">{editingRegistration?.email}</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Loại đăng ký</span>
+                                    <span className="text-sm font-medium">
+                                        {editingRegistration ? (registrantTypeConfig[editingRegistration.registrant_type]?.label ?? "—") : ""}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -537,11 +656,11 @@ export default function CourseRegistrationsPage() {
                                     variant="outline"
                                     className={cn(
                                         "flex items-center justify-center h-12 px-2 border-2 transition-all duration-300 rounded-xl relative overflow-hidden group",
-                                        selectedStatus === "pending"
+                                        selectedStatus === "0"
                                             ? "border-amber-500 bg-amber-500/5 text-amber-700 shadow-sm"
                                             : "hover:border-muted-foreground/30"
                                     )}
-                                    onClick={() => setSelectedStatus("pending")}
+                                    onClick={() => setSelectedStatus("0")}
                                     disabled={isUpdating}
                                 >
                                     <span className="font-bold text-xs leading-tight">Chưa xử lý</span>
@@ -551,28 +670,28 @@ export default function CourseRegistrationsPage() {
                                     variant="outline"
                                     className={cn(
                                         "flex items-center justify-center h-12 px-2 border-2 transition-all duration-300 rounded-xl relative overflow-hidden group",
-                                        selectedStatus === "completed"
-                                            ? "border-emerald-500 bg-emerald-500/5 text-emerald-700 shadow-md shadow-emerald-500/10"
+                                        selectedStatus === "1"
+                                            ? "border-blue-500 bg-blue-500/5 text-blue-700 shadow-md shadow-blue-500/10"
                                             : "hover:border-muted-foreground/30"
                                     )}
-                                    onClick={() => setSelectedStatus("completed")}
+                                    onClick={() => setSelectedStatus("1")}
                                     disabled={isUpdating}
                                 >
-                                    <span className="font-bold text-xs leading-tight">Hoàn Thành</span>
+                                    <span className="font-bold text-xs leading-tight">Đang xử lý</span>
                                 </Button>
 
                                 <Button
                                     variant="outline"
                                     className={cn(
                                         "flex items-center justify-center h-12 px-2 border-2 transition-all duration-300 rounded-xl relative overflow-hidden group",
-                                        selectedStatus === "cancelled"
-                                            ? "border-rose-500 bg-rose-500/5 text-rose-700 shadow-md shadow-rose-500/10"
+                                        selectedStatus === "2"
+                                            ? "border-emerald-500 bg-emerald-500/5 text-emerald-700 shadow-md shadow-emerald-500/10"
                                             : "hover:border-muted-foreground/30"
                                     )}
-                                    onClick={() => setSelectedStatus("cancelled")}
+                                    onClick={() => setSelectedStatus("2")}
                                     disabled={isUpdating}
                                 >
-                                    <span className="font-bold text-xs leading-tight">Hủy bỏ</span>
+                                    <span className="font-bold text-xs leading-tight">Hoàn thành</span>
                                 </Button>
                             </div>
                         </div>
@@ -599,6 +718,66 @@ export default function CourseRegistrationsPage() {
                                 </>
                             ) : (
                                 "Lưu thay đổi"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deletingRegistration} onOpenChange={(open) => !open && setDeletingRegistration(null)}>
+                <DialogContent className="sm:max-w-[420px] rounded-2xl border-none shadow-xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-rose-500">Xác nhận xóa</DialogTitle>
+                        <DialogDescription className="text-base">
+                            Bạn có chắc muốn xóa đăng ký này không? Hành động này không thể hoàn tác.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3 p-4 rounded-xl bg-muted/40 border border-muted-foreground/10 shadow-inner">
+                        <div className="flex flex-col gap-1.5 pb-2 border-b border-muted-foreground/5">
+                            <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Khóa học đăng ký</span>
+                            <span className="text-sm font-bold text-foreground leading-snug">{deletingRegistration?.course_name}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Người đăng ký</span>
+                                <span className="text-sm font-semibold">
+                                    {deletingRegistration ? `${deletingRegistration.last_name} ${deletingRegistration.first_name}`.trim() : ""}
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Email</span>
+                                <span className="text-sm font-medium text-muted-foreground">{deletingRegistration?.email}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeletingRegistration(null)}
+                            disabled={isDeleting}
+                            className="rounded-xl"
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            className="px-8 rounded-xl shadow-md transition-all active:scale-95"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                                    Đang xóa...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Xóa đăng ký
+                                </>
                             )}
                         </Button>
                     </DialogFooter>

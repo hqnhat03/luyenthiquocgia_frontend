@@ -1,36 +1,34 @@
 import { create } from 'zustand';
 
-export interface ScreenPermission {
-  screen_code: string;
-  screen_name: string;
-  can_view: number;
-  can_add: number;
-  can_edit: number;
-  can_delete: number;
-}
-
+/**
+ * usePermissionStore — Route guard store (in-memory, không persist)
+ *
+ * Lưu Set<screen_code> của role hiện tại để PermissionRoute
+ * kiểm tra quyền truy cập trang nhanh chóng (O(1)).
+ *
+ * Không persist vào localStorage — sẽ bị reset khi F5,
+ * Layout sẽ re-fetch và set lại.
+ */
 interface PermissionState {
-  permissions: ScreenPermission[];
-  permissionMap: Map<string, ScreenPermission>;
+  /** Tập hợp screen_code mà user hiện tại được phép truy cập */
+  permissionCodes: Set<string>;
   isLoading: boolean;
   isInitialized: boolean;
-  setPermissions: (permissions: ScreenPermission[]) => void;
+  setPermissionStores: (codes: string[]) => void;
   setLoading: (loading: boolean) => void;
   clearPermissions: () => void;
 }
 
 export const usePermissionStore = create<PermissionState>((set) => ({
-  permissions: [],
-  permissionMap: new Map(),
+  permissionCodes: new Set<string>(),
   isLoading: false,
   isInitialized: false,
-  setPermissions: (permissions) => {
-    const map = new Map<string, ScreenPermission>();
-    permissions.forEach((p) => {
-      map.set(p.screen_code, p);
-    });
-    set({ permissions, permissionMap: map, isInitialized: true });
-  },
-  setLoading: (isLoading) => set({ isLoading }),
-  clearPermissions: () => set({ permissions: [], permissionMap: new Map() }),
+
+  setPermissionStores: (codes: string[]) =>
+    set({ permissionCodes: new Set(codes), isInitialized: true }),
+
+  setLoading: (isLoading: boolean) => set({ isLoading }),
+
+  clearPermissions: () =>
+    set({ permissionCodes: new Set<string>(), isInitialized: false }),
 }));

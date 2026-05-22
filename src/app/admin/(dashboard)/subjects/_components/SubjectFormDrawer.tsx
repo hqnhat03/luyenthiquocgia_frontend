@@ -132,7 +132,7 @@ export function SubjectFormDrawer({
             }
 
             if (subject?.id && (isEdit)) {
-                const res = await api.put(`/admin/subjects/update?id=${subject!.id}`, payload)
+                const res = await api.put(`/admin/subjects/update`, payload)
                 if (!res.data?.success && res.status !== 200) {
                     throw new Error(res.data?.message || "Có lỗi xảy ra khi cập nhật môn học")
                 }

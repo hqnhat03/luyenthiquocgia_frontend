@@ -8,7 +8,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { usePermission } from "@/hooks/use-permission"
 import { useAuthStore } from "@/store/auth-store"
 import {
   ArrowLeft,
@@ -43,61 +42,81 @@ import {
   SidebarMenuSubItem,
   SidebarRail
 } from "@/components/ui/sidebar"
+import { ElementType } from "react"
 
-const navItems = [
+interface NavItem {
+  title: string
+  url?: string
+  icon: ElementType
+  /** permissionKey (ví dụ: "admin:view") — nếu không có thì luôn hiển thị */
+  permissionKey?: string
+  items?: NavSubItem[]
+}
+
+interface NavSubItem {
+  title: string
+  url: string
+  permissionKey?: string
+}
+
+/**
+ * Danh sách menu chính.
+ * permissionKey phải khớp với codeToPermissionKey trong permission-helper.ts
+ */
+const navItems: NavItem[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    permission: "dashboard",
+    permissionKey: "dashboard:view",
   },
   {
     title: "Quản lý khóa học",
     url: "/courses",
     icon: BookOpen,
-    permission: "course_list",
+    permissionKey: "course:view",
   },
   {
     title: "Quản lý giáo viên",
     url: "/teachers",
     icon: Users,
-    permission: "teacher_list",
+    permissionKey: "teacher:view",
   },
   {
     title: "Quản lý học sinh",
     url: "/students",
     icon: GraduationCap,
-    permission: "student_list",
+    permissionKey: "student:view",
   },
   {
     title: "Quản lý phụ huynh",
     url: "/parents",
     icon: UserCheck,
-    permission: "guardian_list",
+    permissionKey: "parent:view",
   },
   {
     title: "Quản lý quản trị viên",
     url: "/admins",
     icon: ShieldCheck,
-    permission: "admin_list",
+    permissionKey: "admin:view",
   },
   {
     title: "Quản lý đăng ký",
     url: "/course-registrations",
-    icon: GraduationCap, // Or another suitable icon
-    permission: "course_registration_list",
+    icon: GraduationCap,
+    permissionKey: "courseRegistration:view",
   },
   {
     title: "Phân quyền màn hình",
     url: "/permissions",
     icon: ShieldCheck,
-    permission: "permission_manage",
+    permissionKey: "permissions:view",
   },
   {
     title: "Quản lý bài viết",
     url: "/news",
     icon: Newspaper,
-    permission: "news_list",
+    permissionKey: "news:view",
   },
   {
     title: "Quản lý chung",
@@ -106,94 +125,122 @@ const navItems = [
       {
         title: "Quản lý môn học",
         url: "/subjects",
-        permission: "subject_list",
+        permissionKey: "subject:view",
       },
       {
         title: "Quản lý trình độ",
         url: "/levels",
-        permission: "level_list",
+        permissionKey: "level:view",
       },
       {
         title: "Quản lý vai trò",
         url: "/roles",
-        permission: "role_list",
+        permissionKey: "userRole:view",
       },
     ],
   },
 ]
 
-export function AdminSidebar() {
+/**
+ * filterMenuItemsByPermissions — Lọc menu theo Set<permissionKey>
+ *
+ * - Item không có permissionKey → luôn hiển thị
+ * - Item có permissionKey → chỉ hiển thị nếu có trong permissions
+ * - Group với items → ẩn nếu không còn sub-item nào hiển thị
+ */
+function filterMenuItemsByPermissions(
+  items: NavItem[],
+  permissions: Set<string>
+): NavItem[] {
+  return items
+    .filter((item) => !item.permissionKey || permissions.has(item.permissionKey))
+    .map((item) => ({
+      ...item,
+      items: item.items
+        ? item.items.filter(
+            (sub) => !sub.permissionKey || permissions.has(sub.permissionKey)
+          )
+        : undefined,
+    }))
+    .filter((item) => !item.items || item.items.length > 0)
+}
+
+interface AdminSidebarProps {
+  /** Set<permissionKey> từ Layout — dùng để ẩn/hiện menu item */
+  sidebarPermissions: Set<string>
+}
+
+export function AdminSidebar({ sidebarPermissions }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
-  const { hasPermission } = usePermission()
 
   const handleLogout = () => {
     logout()
     router.push("/login")
   }
 
-  const courseMatch = pathname.match(/^\/courses\/(\d+)/);
-  const courseId = courseMatch ? courseMatch[1] : null;
+  const courseMatch = pathname.match(/^\/courses\/(\d+)/)
+  const courseId = courseMatch ? courseMatch[1] : null
 
-  const classMatch = pathname.match(/^\/courses\/(\d+)\/classes\/(\d+)/);
-  const classCourseId = classMatch ? classMatch[1] : null;
-  const classId = classMatch ? classMatch[2] : null;
+  const classMatch = pathname.match(/^\/courses\/(\d+)\/classes\/(\d+)/)
+  const classCourseId = classMatch ? classMatch[1] : null
+  const classId = classMatch ? classMatch[2] : null
 
-  let displayItems = navItems;
-  let contextLabel = "Dashboard";
+  // Trong context lớp/khóa học, hiển thị menu phụ không qua permission filter
+  let rawDisplayItems: NavItem[] = navItems
+  let contextLabel = "Dashboard"
 
   if (classMatch) {
-    contextLabel = "Lớp học";
-    displayItems = [
+    contextLabel = "Lớp học"
+    rawDisplayItems = [
       {
         title: "Quay lại",
         url: `/courses/${classCourseId}/classes`,
         icon: ArrowLeft,
-        permission: "class_list",
       },
       {
         title: "Chi tiết lớp học",
         url: `/courses/${classCourseId}/classes/${classId}`,
         icon: LayoutGrid,
-        permission: "class_detail",
       },
       {
         title: "Quản lý bài giảng",
         url: `/courses/${classCourseId}/classes/${classId}/lessons`,
         icon: ListOrdered,
-        permission: "lecture_list",
       },
-    ];
+    ]
   } else if (courseId) {
-    contextLabel = "Khóa học";
-    displayItems = [
+    contextLabel = "Khóa học"
+    rawDisplayItems = [
       {
         title: "Quay lại",
         url: "/courses",
         icon: ArrowLeft,
-        permission: "course_list",
       },
       {
         title: "Chi tiết khóa học",
         url: `/courses/${courseId}`,
         icon: BookOpen,
-        permission: "course_detail",
       },
       {
         title: "Danh sách học sinh",
         url: `/courses/${courseId}/students`,
         icon: Users,
-        permission: "student_in_course_list",
       },
       {
         title: "Danh sách lớp",
         url: `/courses/${courseId}/classes`,
         icon: LayoutGrid,
-        permission: "class_list",
       },
-    ];
+    ]
   }
+
+  // Áp dụng filter chỉ cho menu chính (không áp dụng cho context menu)
+  const displayItems =
+    classMatch || courseId
+      ? rawDisplayItems
+      : filterMenuItemsByPermissions(rawDisplayItems, sidebarPermissions)
 
   return (
     <Sidebar collapsible="icon">
@@ -210,24 +257,18 @@ export function AdminSidebar() {
           </span>
         </Link>
       </SidebarHeader>
+
       <SidebarContent className="group-data-[collapsible=icon]:px-0">
         <SidebarGroup className="group-data-[collapsible=icon]:p-0">
           <SidebarMenu>
             {displayItems.map((item) => {
-              // Nếu mục này yêu cầu permission mà user không có thì ẩn
-              if (item.permission && !hasPermission(item.permission)) return null;
-
-              // Đối với menu lồng nhau (Quản lý chung)
+              // Group có sub-items (Quản lý chung)
               if (item.items) {
-                const visibleSubItems = item.items.filter(
-                  (sub) => !sub.permission || hasPermission(sub.permission)
-                );
-
-                // Nếu không có sub-item nào hiển thị thì ẩn luôn menu cha
-                if (visibleSubItems.length === 0) return null;
-
                 return (
-                  <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                  <SidebarMenuItem
+                    key={item.title}
+                    className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+                  >
                     <SidebarMenuButton
                       tooltip={item.title}
                       className="hover:bg-accent hover:text-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
@@ -237,7 +278,7 @@ export function AdminSidebar() {
                       <ChevronRight className="ml-auto transition-transform group-data-[collapsible=icon]:hidden" />
                     </SidebarMenuButton>
                     <SidebarMenuSub>
-                      {visibleSubItems.map((subItem) => (
+                      {item.items.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.url}>
                           <SidebarMenuSubButton
                             render={<Link href={subItem.url} />}
@@ -249,11 +290,14 @@ export function AdminSidebar() {
                       ))}
                     </SidebarMenuSub>
                   </SidebarMenuItem>
-                );
+                )
               }
 
               return (
-                <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                <SidebarMenuItem
+                  key={item.title}
+                  className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+                >
                   <SidebarMenuButton
                     render={<Link href={item.url!} />}
                     isActive={pathname === item.url}
@@ -264,11 +308,12 @@ export function AdminSidebar() {
                     <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
+              )
             })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="p-2 border-t border-border/20">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -279,7 +324,10 @@ export function AdminSidebar() {
                   className="w-full hover:bg-accent hover:text-accent-foreground group-data-[collapsible=icon]:justify-center transition-all px-2 py-1.5 rounded-lg"
                 >
                   <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                    <AvatarImage src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&h=150&auto=format&fit=crop"} alt={user?.name || "Admin"} />
+                    <AvatarImage
+                      src={user?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&h=150&auto=format&fit=crop"}
+                      alt={user?.name || "Admin"}
+                    />
                     <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-lg text-xs">
                       {user?.name ? user.name.substring(0, 2).toUpperCase() : "AD"}
                     </AvatarFallback>
