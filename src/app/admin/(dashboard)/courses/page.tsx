@@ -586,8 +586,7 @@ export default function CoursesPage() {
                             </Button>
                           </Link>
                         </Can>
-                        <Can permission="course_delete">
-                          <Button
+                        <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
@@ -599,7 +598,6 @@ export default function CoursesPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Can>
                       </div>
                     </TableCell>
                   </TableRow>

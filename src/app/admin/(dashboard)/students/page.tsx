@@ -200,8 +200,7 @@ export default function StudentsPage() {
       <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
         Quản lý học sinh
       </h2>
-      <Can permission="student_create">
-        <Button
+      <Button
           className="h-10 px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap shadow-md shadow-primary/20"
           onClick={() => {
             setSelectedStudentId(null)
@@ -211,7 +210,6 @@ export default function StudentsPage() {
           <Plus className="mr-2 h-4 w-4" />
           <span className="text-sm font-bold">Thêm học sinh</span>
         </Button>
-      </Can>
     </div>
   ), []);
 
@@ -485,7 +483,6 @@ export default function StudentsPage() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Can>
-                      <Can permission="student_delete">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -495,7 +492,6 @@ export default function StudentsPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>

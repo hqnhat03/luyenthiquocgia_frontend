@@ -1,6 +1,5 @@
 "use client"
 
-import { Can } from "@/components/auth/can"
 import { usePermission } from "@/hooks/use-permission"
 import api from "@/lib/axios"
 import { useLayoutStore } from "@/store/layout-store"
@@ -194,7 +193,6 @@ export default function CourseStudentsPage() {
                         • Quản lý học sinh trong khóa học
                     </p>
                 </div>
-                <Can permission="student_in_course_edit">
                     <Tabs value={filterType} onValueChange={(v) => {
                         setFilterType(v as "registered" | "arranged")
                         setCurrentPage(1)
@@ -208,7 +206,6 @@ export default function CourseStudentsPage() {
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
-                </Can>
             </div>
         )
         return () => {
@@ -312,7 +309,6 @@ export default function CourseStudentsPage() {
                             >
                                 <RefreshCw className="mr-2 h-4 w-4" /> Tải lại
                             </Button>
-                            <Can permission="student_in_course_edit">
                                 {selectedIds.size > 0 && filterType !== "arranged" && (
                                     <Button variant="destructive" className="flex-1 sm:flex-none animate-in zoom-in-95">
                                         <Trash2 className="mr-2 h-4 w-4" /> Xóa đã chọn ({selectedIds.size})
@@ -330,7 +326,6 @@ export default function CourseStudentsPage() {
                                         <LayoutGrid className="mr-2 h-4 w-4" /> Xếp lớp ({selectedIds.size})
                                     </Button>
                                 )}
-                            </Can>
                         </div>
                     </div>
                 </CardContent>
@@ -401,8 +396,7 @@ export default function CourseStudentsPage() {
                                         </TableCell>
                                         <TableCell className="text-right py-4">
                                             <div className="flex justify-end gap-1">
-                                                <Can permission="student_detail">
-                                                    <Button
+                                                <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
@@ -414,9 +408,8 @@ export default function CourseStudentsPage() {
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
-                                                </Can>
                                                 {filterType !== "arranged" && (
-                                                    <Can permission="student_in_course_delete">
+                                                    
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -426,10 +419,8 @@ export default function CourseStudentsPage() {
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    </Can>
                                                 )}
                                                 {student.class_id && (
-                                                    <Can permission="class_edit">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -439,10 +430,9 @@ export default function CourseStudentsPage() {
                                                         >
                                                             <ShieldAlert className="h-4 w-4" />
                                                         </Button>
-                                                    </Can>
                                                 )}
                                                 {!student.class_id && filterType !== "arranged" && (
-                                                    <Can permission="class_edit">
+                                                    
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -455,7 +445,6 @@ export default function CourseStudentsPage() {
                                                         >
                                                             <LayoutGrid className="h-4 w-4" />
                                                         </Button>
-                                                    </Can>
                                                 )}
                                             </div>
                                         </TableCell>

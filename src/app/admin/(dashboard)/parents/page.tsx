@@ -205,15 +205,13 @@ export default function ParentsPage() {
       <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
         Quản lý phụ huynh
       </h2>
-      <Can permission="guardian_create">
-        <Button
+      <Button
           className="h-10 px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap shadow-md shadow-primary/20"
           onClick={() => openDrawer("create")}
         >
           <Plus className="mr-2 h-4 w-4" />
           <span className="text-sm font-bold">Thêm phụ huynh</span>
         </Button>
-      </Can>
     </div>
   ), []);
 
@@ -426,7 +424,6 @@ export default function ParentsPage() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Can>
-                      <Can permission="guardian_delete">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -436,7 +433,6 @@ export default function ParentsPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>

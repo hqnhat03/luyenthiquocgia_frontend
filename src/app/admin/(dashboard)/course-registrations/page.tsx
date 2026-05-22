@@ -491,7 +491,6 @@ export default function CourseRegistrationsPage() {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <div className="flex justify-center gap-1">
-                                                {hasPermission("course_registration_edit") && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -501,8 +500,7 @@ export default function CourseRegistrationsPage() {
                                                     >
                                                         <Edit2 className="h-4 w-4" />
                                                     </Button>
-                                                )}
-                                                {hasPermission("course_registration_delete") && (
+                               
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -512,7 +510,6 @@ export default function CourseRegistrationsPage() {
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
-                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

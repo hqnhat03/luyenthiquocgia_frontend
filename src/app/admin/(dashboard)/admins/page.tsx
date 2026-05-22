@@ -102,8 +102,7 @@ export default function AdminsPage() {
       <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
         Quản lý quản trị viên
       </h2>
-      <Can permission="admin_create">
-        <Button
+      <Button
           className="h-10 px-6 bg-primary hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap shadow-md shadow-primary/20"
           onClick={() => {
             setSelectedAdmin(null)
@@ -113,7 +112,6 @@ export default function AdminsPage() {
           <Plus className="mr-2 h-4 w-4" />
           <span className="text-sm font-bold">Thêm mới</span>
         </Button>
-      </Can>
     </div>
   ), []);
 
@@ -446,7 +444,6 @@ export default function AdminsPage() {
                             <Edit className="h-4 w-4" />
                           </Button>
                         </Can>
-                        <Can permission="admin_delete">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -456,7 +453,6 @@ export default function AdminsPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Can>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -1,6 +1,5 @@
 "use client"
 
-import { Can } from "@/components/auth/can"
 import { usePermission } from "@/hooks/use-permission"
 import {
   BookOpen,

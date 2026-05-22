@@ -269,7 +269,8 @@ export default function NewsPage() {
                                                     setNewsToDelete(article)
                                                     setIsDeleteDialogOpen(true)
                                                 }}
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors rounded-xl"
+                                                title="Xóa"
                                             >
                                                 {isDeleting === article.id ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />

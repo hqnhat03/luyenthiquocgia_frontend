@@ -34,7 +34,6 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 
-import { Can } from "@/components/auth/can"
 import { QuillEditor } from "@/components/quill-editor"
 import {
     AlertDialog,
@@ -357,14 +356,12 @@ export default function ClassLecturesPage() {
                             </Button>
                         </div>
                     )}
-                    <Can permission="lecture_create">
-                        <Button
+                    <Button
                             onClick={() => setIsCreateDrawerOpen(true)}
                             className="h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground transition-all active:scale-95 whitespace-nowrap gap-2 shadow-md shadow-primary/20 font-bold text-sm"
                         >
                             <Plus className="h-4 w-4" /> Thêm bài giảng
                         </Button>
-                    </Can>
                 </div>
             </div>
         )
@@ -753,7 +750,6 @@ export default function ClassLecturesPage() {
                                         </TableCell>
                                         <TableCell className="text-right py-4">
                                             <div className="flex justify-end gap-1">
-                                                <Can permission="lecture_detail">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -763,8 +759,6 @@ export default function ClassLecturesPage() {
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
-                                                </Can>
-                                                <Can permission="lecture_edit">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -774,8 +768,6 @@ export default function ClassLecturesPage() {
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
-                                                </Can>
-                                                <Can permission="lecture_delete">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -788,7 +780,6 @@ export default function ClassLecturesPage() {
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
-                                                </Can>
                                             </div>
                                         </TableCell>
                                     </TableRow>
