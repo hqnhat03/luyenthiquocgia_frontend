@@ -61,14 +61,49 @@ export default function ExamsPage() {
   const [fromRecord, setFromRecord] = React.useState(0)
   const [toRecord, setToRecord] = React.useState(0)
 
-  const handleViewDetail = (exam: Exam) => {
-    setSelectedExam(exam)
-    setIsDetailOpen(true)
+  const fetchExamDetail = async (exam: Exam) => {
+    try {
+      const response = await api.get('/teacher/class-tests/detail', {
+        params: { id: exam.id }
+      })
+      if (response.data?.status === 'success') {
+        const data = response.data.data
+        return {
+          ...exam,
+          name: data.title,
+          duration_minutes: data.duration,
+          status: String(data.status) === '2' ? 'published' : String(data.status) === '1' ? 'archived' : 'draft',
+          open_at: data.start_time,
+          close_at: data.end_time,
+          class: {
+            class_code: data.class_code,
+            course_name: exam.class?.course_name || data.class_code,
+          }
+        } as Exam
+      }
+      toast.error(response.data?.message || "Không thể lấy chi tiết bài kiểm tra")
+      return null
+    } catch (error) {
+      console.error(error)
+      toast.error("Không thể lấy chi tiết bài kiểm tra")
+      return null
+    }
   }
 
-  const handleEdit = (exam: Exam) => {
-    setEditingExam(exam)
-    setIsCreateOpen(true)
+  const handleViewDetail = async (exam: Exam) => {
+    const detail = await fetchExamDetail(exam)
+    if (detail) {
+      setSelectedExam(detail)
+      setIsDetailOpen(true)
+    }
+  }
+
+  const handleEdit = async (exam: Exam) => {
+    const detail = await fetchExamDetail(exam)
+    if (detail) {
+      setEditingExam(detail)
+      setIsCreateOpen(true)
+    }
   }
 
   const handleDeleteClick = (exam: Exam) => {
@@ -112,7 +147,7 @@ export default function ExamsPage() {
           class_id: item.class_id || 0,
           name: item.title,
           duration_minutes: item.duration || 0,
-          status: item.status === 2 ? 'published' : item.status === 1 ? 'archived' : 'draft',
+          status: String(item.status) === '2' ? 'published' : String(item.status) === '1' ? 'archived' : 'draft',
           open_at: item.start_time,
           close_at: item.end_time,
           questions_count: item.total_questions || 0,

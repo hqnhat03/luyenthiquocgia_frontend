@@ -186,7 +186,7 @@ export default function ClassExamsPage() {
                             <TableHeader className="bg-muted/40 h-12">
                                 <TableRow className="hover:bg-transparent border-border/20">
                                     <TableHead className="font-semibold text-xs pl-8">Thông tin bài kiểm tra</TableHead>
-                                    <TableHead className="font-semibold text-xs">Trạng thái</TableHead>
+                                    <TableHead className="font-semibold text-xs">Đã làm</TableHead>
                                     <TableHead className="font-semibold text-xs text-center">Thời gian kết thúc</TableHead>
                                     <TableHead className="text-right font-semibold text-xs pr-8">Thao tác</TableHead>
                                 </TableRow>
@@ -209,7 +209,9 @@ export default function ClassExamsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {getStatusBadge(exam.status)}
+                                                <Badge variant="secondary" className="font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-none">
+                                                    {exam.submission_ratio || '0/0'}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <span className="text-sm font-medium text-muted-foreground">{exam.end_time}</span>

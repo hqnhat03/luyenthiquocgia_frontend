@@ -149,7 +149,7 @@ export default function StudentAnswersPage() {
   }
 
   const totalQuestions = data.questions.length;
-  const correctAnswersCount = data.questions.filter(q => q.result === 1).length;
+  const correctAnswersCount = data.questions.filter(q => Number(q.result) === 1).length;
   const accuracyPercentage = totalQuestions > 0 ? Math.round((correctAnswersCount / totalQuestions) * 100) : 0;
 
   const getOptionLetter = (no: number) => {
@@ -245,10 +245,10 @@ export default function StudentAnswersPage() {
 
         <div className="space-y-8">
           {[...data.questions]
-            .sort((a, b) => a.question_no - b.question_no)
+            .sort((a, b) => Number(a.question_no) - Number(b.question_no))
             .map((question) => {
               const isAnswered = question.student_choice_id !== null;
-              const isCorrect = question.result === 1;
+              const isCorrect = Number(question.result) === 1;
 
               return (
                 <Card
@@ -297,10 +297,10 @@ export default function StudentAnswersPage() {
                     {question.choices && question.choices.length > 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         {[...question.choices]
-                          .sort((a, b) => a.choice_no - b.choice_no)
-                          .map((choice) => {
-                            const isStudentChoice = choice.id === question.student_choice_id;
-                            const isCorrectAnswer = choice.choice_no === question.correct_answer;
+                          .sort((a, b) => Number(a.choice_no) - Number(b.choice_no))
+                          .map((choice, index) => {
+                            const isStudentChoice = Number(choice.id) === Number(question.student_choice_id);
+                            const isCorrectAnswer = Number(choice.choice_no) === Number(question.correct_answer);
 
                             return (
                               <div
@@ -321,7 +321,7 @@ export default function StudentAnswersPage() {
                                     isCorrectAnswer ? "border-emerald-500 text-emerald-600 bg-white dark:bg-slate-950" :
                                     "border-slate-300 text-slate-500 bg-white dark:bg-slate-950"
                                   )}>
-                                    {getOptionLetter(choice.choice_no)}
+                                    {getOptionLetter(index + 1)}
                                   </div>
                                   <span className="text-base font-medium">{choice.content}</span>
                                 </div>

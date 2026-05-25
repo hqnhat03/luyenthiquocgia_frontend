@@ -56,7 +56,10 @@ interface CreateExamModalProps {
   onSuccess?: () => void
   open: boolean
   onOpenChange: (open: boolean) => void
-  initialData?: (Partial<ExamFormValues> & { id: number }) | null // For edit mode if needed
+  initialData?: (Partial<ExamFormValues> & { 
+    id: number;
+    class?: { class_code: string; course_name?: string } 
+  }) | null // For edit mode if needed
 }
 
 export function CreateExamModal({ onSuccess, open, onOpenChange, initialData }: CreateExamModalProps) {
@@ -90,7 +93,16 @@ export function CreateExamModal({ onSuccess, open, onOpenChange, initialData }: 
           })
           if (response.data?.status === "success" || response.data?.success) {
             const data = response.data.data
-            setClasses(Array.isArray(data) ? data : data?.data || [])
+            const classList = Array.isArray(data) ? data : data?.data || []
+            setClasses(classList)
+            
+            if (initialData && (!initialData.class_id || initialData.class_id === 0) && initialData.class?.class_code) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const matchedClass = classList.find((c: any) => c.class_code === initialData.class?.class_code)
+              if (matchedClass) {
+                form.setValue('class_id', matchedClass.id)
+              }
+            }
           }
         } catch (error) {
           console.error("Failed to fetch classes:", error)
@@ -101,7 +113,7 @@ export function CreateExamModal({ onSuccess, open, onOpenChange, initialData }: 
       }
       fetchClasses()
     }
-  }, [open])
+  }, [open, initialData, form])
 
   const formatToLocalDatetime = (dateString?: string) => {
     if (!dateString) return ""
@@ -122,7 +134,7 @@ export function CreateExamModal({ onSuccess, open, onOpenChange, initialData }: 
     if (open) {
       if (initialData) {
         form.reset({
-          class_id: initialData.class_id,
+          class_id: (initialData.class_id === 0 ? undefined : initialData.class_id) as unknown as number,
           name: initialData.name,
           duration_minutes: initialData.duration_minutes,
           status: initialData.status,

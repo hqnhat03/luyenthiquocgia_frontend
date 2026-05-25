@@ -708,14 +708,24 @@ export default function ClassLessonsPage() {
                 {/* Video Player Section */}
                 {selectedLesson.video_url && (selectedLesson.video_url.includes('youtube.com') || selectedLesson.video_url.includes('youtu.be') || selectedLesson.video_url.startsWith('http')) ? (
                   <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black shadow-2xl group border-4 border-muted/50">
-                    {selectedLesson.video_url.includes('youtube.com') || selectedLesson.video_url.includes('youtu.be') ? (
-                      <iframe
-                        src={selectedLesson.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        className="absolute inset-0 w-full h-full"
-                        allowFullScreen
-                        title={selectedLesson.lesson_name}
-                      />
-                    ) : (
+                    {selectedLesson.video_url.includes('youtube.com') || selectedLesson.video_url.includes('youtu.be') ? (() => {
+                      const getYoutubeId = (url: string) => {
+                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                        const match = url.match(regExp);
+                        return match && match[2].length === 11 ? match[2] : null;
+                      };
+                      const videoId = getYoutubeId(selectedLesson.video_url);
+                      const embedUrl = videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : selectedLesson.video_url;
+                      
+                      return (
+                        <iframe
+                          src={embedUrl}
+                          className="absolute inset-0 w-full h-full"
+                          allowFullScreen
+                          title={selectedLesson.lesson_name}
+                        />
+                      );
+                    })() : (
                       <video
                         src={selectedLesson.video_url}
                         className="absolute inset-0 w-full h-full"
@@ -971,7 +981,7 @@ export default function ClassLessonsPage() {
                 e.preventDefault()
                 handleConfirmDelete()
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg font-bold transition-all shadow-lg shadow-destructive/20"
+              className="bg-destructive text-white hover:bg-destructive/90 rounded-lg font-bold transition-all shadow-lg shadow-destructive/20"
               disabled={isDeleting}
             >
               {isDeleting ? (

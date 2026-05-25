@@ -40,6 +40,7 @@ export default function VideoPlayer({ lesson, progress, studentId }: VideoPlayer
         height: "100%",
         width: "100%",
         videoId: videoId,
+        host: "https://www.youtube-nocookie.com",
         playerVars: {
           start: progress.last_position || 0,
           autoplay: 0,
