@@ -214,7 +214,8 @@ export default function CreateArticlePage() {
                                 <Image
                                     src={form.watch("image")}
                                     alt="Banner Preview"
-                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
+                                    fill
+                                    className="object-cover group-hover:scale-[1.02] transition-transform duration-700"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all duration-300">
                                     <div className="bg-primary/90 text-white text-sm font-medium px-6 py-2.5 rounded-full shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform">

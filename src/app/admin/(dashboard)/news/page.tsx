@@ -216,7 +216,7 @@ export default function NewsPage() {
                                         <div className="relative h-32 w-48 overflow-hidden rounded border bg-muted shadow-sm">
                                             {article.image_url ? (
                                                 <Image
-                                                    src={article.image_url}
+                                                    src={article.image_url.startsWith('http') ? article.image_url : `${process.env.NEXT_PUBLIC_API_IMAGE_URL}${article.image_url}`}
                                                     alt={article.title}
                                                     className="h-full w-full object-cover"
                                                     width={192}

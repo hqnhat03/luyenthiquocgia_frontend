@@ -121,7 +121,7 @@ export default function ArticleDetailPage() {
                 {article.image_url ? (
                     <>
                         <Image
-                            src={article.image_url}
+                            src={article.image_url.startsWith('http') ? article.image_url : `${process.env.NEXT_PUBLIC_API_IMAGE_URL}${article.image_url}`}
                             alt={article.title}
                             fill
                             className="object-cover transition-transform duration-1000 group-hover:scale-105"
