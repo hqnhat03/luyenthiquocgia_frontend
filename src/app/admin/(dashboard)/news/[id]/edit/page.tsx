@@ -142,7 +142,7 @@ export default function EditArticlePage() {
             formData.append("content", data.content)
             formData.append("status", data.status.toString())
             if (selectedFile) {
-                formData.append("image_url", selectedFile)
+                formData.append("image", selectedFile)
             }
 
             const res = await api.post("/admin/news/update", formData, {
