@@ -6,8 +6,10 @@ import { useLayoutStore } from "@/store/layout-store"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     BookOpen,
+    Calendar,
     CheckIcon,
     ChevronsUpDown,
+    Clock,
     ImageIcon,
     Layers,
     LayoutGrid,
@@ -80,9 +82,106 @@ const courseSchema = z.object({
             link_url: z.string().url("URL không hợp lệ").min(1, "Vui lòng nhập Link URL"),
         })
     ).optional(),
+    course_schedules: z.array(
+        z.object({
+            id: z.string().optional(),
+            schedule_no: z.coerce.number().min(1, "Vui lòng nhập số thứ tự"),
+            schedule_name: z.string().min(1, "Vui lòng nhập tên lịch học"),
+            details: z.array(
+                z.object({
+                    id: z.string().optional(),
+                    day_of_week: z.coerce.number(),
+                    start_time: z.string().min(1, "Vui lòng nhập giờ bắt đầu"),
+                    end_time: z.string().min(1, "Vui lòng nhập giờ kết thúc"),
+                })
+            ).min(1, "Cần ít nhất một chi tiết lịch học")
+        })
+    ).optional(),
 })
 
 type FormValues = z.infer<typeof courseSchema>
+
+const ScheduleItem = ({ control, index, removeSchedule, form }: { control: any, index: number, removeSchedule: (index: number) => void, form: any }) => {
+    const { fields: detailFields, append: appendDetail, remove: removeDetail } = useFieldArray({
+        control,
+        name: `course_schedules.${index}.details`
+    });
+
+    return (
+        <div className="flex flex-col gap-4 bg-accent/20 p-4 rounded-xl border border-accent">
+            <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    Lịch học {index + 1}
+                </h4>
+                <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8" onClick={() => removeSchedule(index)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <Field data-invalid={!!form.formState.errors.course_schedules?.[index]?.schedule_no}>
+                    <FieldLabel>Số thứ tự</FieldLabel>
+                    <FieldContent>
+                        <Input type="number" {...form.register(`course_schedules.${index}.schedule_no`)} className="bg-background/50" />
+                    </FieldContent>
+                    <FieldError errors={[{ message: form.formState.errors.course_schedules?.[index]?.schedule_no?.message }]} />
+                </Field>
+                <Field data-invalid={!!form.formState.errors.course_schedules?.[index]?.schedule_name}>
+                    <FieldLabel>Tên lịch học</FieldLabel>
+                    <FieldContent>
+                        <Input placeholder="VD: Lịch học 1" {...form.register(`course_schedules.${index}.schedule_name`)} className="bg-background/50" />
+                    </FieldContent>
+                    <FieldError errors={[{ message: form.formState.errors.course_schedules?.[index]?.schedule_name?.message }]} />
+                </Field>
+            </div>
+            
+            <div className="space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Chi tiết thời gian</span>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => appendDetail({ id: uuidv4(), day_of_week: 2, start_time: "07:00", end_time: "09:00" })}>
+                        <Plus className="h-3 w-3" /> Thêm thời gian
+                    </Button>
+                </div>
+                {detailFields.map((detail, dIndex) => (
+                    <div key={detail.id} className="flex items-end gap-3 bg-background/50 p-3 rounded-lg border border-border/50">
+                        <Field className="flex-1" data-invalid={!!form.formState.errors.course_schedules?.[index]?.details?.[dIndex]?.day_of_week}>
+                            <FieldLabel className="text-xs">Thứ</FieldLabel>
+                            <FieldContent>
+                                <select 
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {...form.register(`course_schedules.${index}.details.${dIndex}.day_of_week`)}
+                                >
+                                    <option value="2">Thứ 2</option>
+                                    <option value="3">Thứ 3</option>
+                                    <option value="4">Thứ 4</option>
+                                    <option value="5">Thứ 5</option>
+                                    <option value="6">Thứ 6</option>
+                                    <option value="7">Thứ 7</option>
+                                    <option value="8">Chủ nhật</option>
+                                </select>
+                            </FieldContent>
+                        </Field>
+                        <Field className="flex-1" data-invalid={!!form.formState.errors.course_schedules?.[index]?.details?.[dIndex]?.start_time}>
+                            <FieldLabel className="text-xs">Giờ bắt đầu</FieldLabel>
+                            <FieldContent>
+                                <Input type="time" {...form.register(`course_schedules.${index}.details.${dIndex}.start_time`)} />
+                            </FieldContent>
+                        </Field>
+                        <Field className="flex-1" data-invalid={!!form.formState.errors.course_schedules?.[index]?.details?.[dIndex]?.end_time}>
+                            <FieldLabel className="text-xs">Giờ kết thúc</FieldLabel>
+                            <FieldContent>
+                                <Input type="time" {...form.register(`course_schedules.${index}.details.${dIndex}.end_time`)} />
+                            </FieldContent>
+                        </Field>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={() => removeDetail(dIndex)} disabled={detailFields.length === 1}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 export default function EditCoursePage() {
     const params = useParams()
@@ -121,13 +220,19 @@ export default function EditCoursePage() {
             lesson_count: 0,
             completion_time: 0,
             image_url: "",
-            course_materials: []
+            course_materials: [],
+            course_schedules: []
         },
     })
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "course_materials",
+    })
+
+    const { fields: scheduleFields, append: appendSchedule, remove: removeSchedule } = useFieldArray({
+        control: form.control,
+        name: "course_schedules",
     })
 
     const selectedSubjectId = form.watch("subject_id");
@@ -189,6 +294,33 @@ export default function EditCoursePage() {
                     if (Number(cData.target_student) === 1) targetStudentStr = "teacher";
                     else if (Number(cData.target_student) === 2) targetStudentStr = "all";
 
+                    // Group course_schedules by schedule_no
+                    const rawSchedules = Array.isArray(cData.course_schedules) ? cData.course_schedules : [];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const groupedSchedulesMap = new Map<number, any>();
+                    
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    rawSchedules.forEach((s: any) => {
+                        const no = s.schedule_no || 1;
+                        if (!groupedSchedulesMap.has(no)) {
+                            groupedSchedulesMap.set(no, {
+                                id: String(s.id || uuidv4()),
+                                schedule_no: no,
+                                schedule_name: s.schedule_name || "",
+                                details: []
+                            });
+                        }
+                        
+                        groupedSchedulesMap.get(no).details.push({
+                            id: String(s.id || uuidv4()),
+                            day_of_week: Number(s.day_of_week) || 2,
+                            start_time: s.start_time || "07:00",
+                            end_time: s.end_time || "09:00"
+                        });
+                    });
+
+                    const groupedSchedules = Array.from(groupedSchedulesMap.values());
+
                     form.reset({
                         name: cData.name || "",
                         description: cData.description || "",
@@ -205,7 +337,8 @@ export default function EditCoursePage() {
                             id: m.id ? String(m.id) : uuidv4(),
                             name: m.title || "",
                             link_url: m.url || ""
-                        })) : []
+                        })) : [],
+                        course_schedules: groupedSchedules
                     })
                 }
             } catch (error) {
@@ -361,6 +494,18 @@ export default function EditCoursePage() {
                 if (!isNaN(parsedId) && parsedId > 0) {
                     formData.append(`course_materials[${index}][id]`, String(parsedId))
                 }
+            })
+
+            // Append course schedules array
+            const schedules = data.course_schedules || []
+            schedules.forEach((schedule, index) => {
+                formData.append(`course_schedules[${index}][schedule_no]`, String(schedule.schedule_no))
+                formData.append(`course_schedules[${index}][schedule_name]`, schedule.schedule_name)
+                schedule.details.forEach((detail, dIndex) => {
+                    formData.append(`course_schedules[${index}][details][${dIndex}][day_of_week]`, String(detail.day_of_week))
+                    formData.append(`course_schedules[${index}][details][${dIndex}][start_time]`, detail.start_time)
+                    formData.append(`course_schedules[${index}][details][${dIndex}][end_time]`, detail.end_time)
+                })
             })
 
             await api.post("/admin/courses/update", formData, {
@@ -628,6 +773,52 @@ export default function EditCoursePage() {
                                             </Button>
                                         </div>
                                     ))
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Lịch học (Dynamic List) */}
+                        <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+                            <CardHeader>
+                                <CardTitle className="text-xl flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-5 w-5 text-primary" />
+                                        Lịch học
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => appendSchedule({ 
+                                            id: uuidv4(), 
+                                            schedule_no: scheduleFields.length + 1, 
+                                            schedule_name: `Lịch học ${scheduleFields.length + 1}`, 
+                                            details: [{ id: uuidv4(), day_of_week: 2, start_time: "07:00", end_time: "09:00" }] 
+                                        })}
+                                        className="gap-2"
+                                    >
+                                        <Plus className="h-4 w-4" /> Thêm lịch học
+                                    </Button>
+                                </CardTitle>
+                                <CardDescription>Quản lý các lịch học cho khóa học này</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {scheduleFields.length === 0 ? (
+                                    <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg bg-muted/20">
+                                        Chưa có lịch học nào. Bấm Thêm lịch học để bắt đầu.
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {scheduleFields.map((field, index) => (
+                                            <ScheduleItem
+                                                key={field.id}
+                                                control={form.control}
+                                                index={index}
+                                                removeSchedule={removeSchedule}
+                                                form={form}
+                                            />
+                                        ))}
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
