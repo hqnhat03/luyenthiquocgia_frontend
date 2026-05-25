@@ -51,9 +51,10 @@ const nextConfig = {
     },
     allowedDevOrigins: [
         'myapp.test',
-        'teacher.myapp.test',
-        'student.myapp.test',
-        'guardian.myapp.test',
+        'quantrivien.myapp.test',
+        'giaovien.myapp.test',
+        'www.myapp.test',
+        'phuhuynh.myapp.test',
     ],
 };
 

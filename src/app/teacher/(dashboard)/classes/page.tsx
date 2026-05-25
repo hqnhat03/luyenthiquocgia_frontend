@@ -43,7 +43,7 @@ interface Class {
   class_code: string;
   start_date: string;
   end_date: string;
-  status: number;
+  status: string | number;
   course_name: string;
   course_image: string | null;
   teachers_basic_info: TeacherBasicInfo[];
@@ -88,14 +88,14 @@ export default function ClassesPage() {
     cls.course_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const getStatusBadge = (status: number) => {
-    switch (status) {
-      case 2: // published
-        return <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Đang hoạt động</Badge>
-      case 0: // draft
-        return <Badge variant="outline" className="bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Bản nháp</Badge>
-      case 1: // archived
-        return <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Đã đóng</Badge>
+  const getStatusBadge = (status: string | number) => {
+    switch (String(status)) {
+      case "2": // published
+        return <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Xuất bản</Badge>
+      case "0": // draft
+        return <Badge variant="outline" className="bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Nháp</Badge>
+      case "1": // archived
+        return <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">Lưu trữ</Badge>
       default:
         return <Badge variant="outline" className="px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider">{status}</Badge>
     }

@@ -79,7 +79,7 @@ export default function ExamQuestionsPage() {
         const options = bq.choices && bq.choices.length > 0
           ? Array.from({ length: 4 }, (_, idx) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const choice = bq.choices.find((c: any) => c.choice_no === idx + 1)
+              const choice = bq.choices.find((c: any) => Number(c.choice_no) === idx + 1)
               return choice ? choice.content : ""
             })
           : ["", "", "", ""]
@@ -87,13 +87,13 @@ export default function ExamQuestionsPage() {
         const choice_ids = bq.choices && bq.choices.length > 0
           ? Array.from({ length: 4 }, (_, idx) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const choice = bq.choices.find((c: any) => c.choice_no === idx + 1)
+              const choice = bq.choices.find((c: any) => Number(c.choice_no) === idx + 1)
               return choice ? choice.id : null
             })
           : [null, null, null, null]
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const correctChoice = bq.choices?.find((c: any) => c.choice_no === Number(bq.correct_answer))
+        const correctChoice = bq.choices?.find((c: any) => Number(c.choice_no) === Number(bq.correct_answer))
         const correct_answer = correctChoice ? correctChoice.content : ""
 
         return {

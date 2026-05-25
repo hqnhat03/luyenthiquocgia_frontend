@@ -71,6 +71,11 @@ export function TeacherSidebar() {
       icon: ClipboardList,
     },
     {
+      title: "Điểm danh",
+      url: `/classes/${classId}/attendance`,
+      icon: Calendar,
+    },
+    {
       title: "Tin tức lớp học",
       url: `/classes/${classId}/news`,
       icon: Newspaper,

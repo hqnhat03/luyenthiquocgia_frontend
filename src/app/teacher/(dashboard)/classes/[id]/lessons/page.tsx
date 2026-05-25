@@ -95,7 +95,7 @@ export default function ClassLessonsPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = React.useState(1)
   const [totalPages, setTotalPages] = React.useState(1)
-  const [pageSize] = React.useState(5)
+  const [pageSize, setPageSize] = React.useState(5)
   const [totalItems, setTotalItems] = React.useState(0)
 
   const form = useForm<LessonFormValues>({
@@ -124,7 +124,11 @@ export default function ClassLessonsPage() {
       if (response.data?.status === 'success' || response.data?.success) {
         const paginatedData = response.data.data;
         if (paginatedData) {
-          setLessons(paginatedData.data || [])
+          const normalizedData = (paginatedData.data || []).map((lesson: any) => ({
+            ...lesson,
+            status: lesson.status !== undefined && lesson.status !== null ? Number(lesson.status) : 0
+          }))
+          setLessons(normalizedData)
           setCurrentPage(paginatedData.current_page || page)
           setTotalPages(paginatedData.last_page || 1)
           setTotalItems(paginatedData.total || 0)
@@ -251,7 +255,16 @@ export default function ClassLessonsPage() {
         params: { id: lesson.id }
       })
       if (response.data?.status === 'success' || response.data?.success) {
-        setSelectedLesson(response.data.data)
+        const detailData = response.data.data;
+        if (detailData) {
+          setSelectedLesson({
+            ...detailData,
+            status: detailData.status !== undefined && detailData.status !== null ? Number(detailData.status) : 0
+          })
+        } else {
+          toast.error("Không thể lấy chi tiết bài học")
+          setIsViewModalOpen(false)
+        }
       } else {
         toast.error("Không thể lấy chi tiết bài học")
         setIsViewModalOpen(false)
@@ -460,44 +473,63 @@ export default function ClassLessonsPage() {
           </Table>
 
           {/* Pagination UI */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-border/40">
-              <p className="text-sm font-medium text-muted-foreground">
-                Hiển thị <span className="font-bold text-foreground">{lessons.length}</span> trên tổng số{" "}
-                <span className="font-bold text-foreground">{totalItems}</span> bài học
-              </p>
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchLessons(currentPage - 1)}
-                  disabled={currentPage === 1 || loading}
-                  className="rounded-lg h-9 font-bold px-3"
-                >
-                  Trước
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={page === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => fetchLessons(page)}
-                    disabled={loading}
-                    className={`rounded-lg size-9 font-bold ${page === currentPage ? "shadow-md shadow-primary/20" : ""}`}
+          {totalItems > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border/40">
+              <div className="flex items-center gap-6">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Hiển thị <span className="font-bold text-foreground">{lessons.length}</span> trên tổng số{" "}
+                  <span className="font-bold text-foreground">{totalItems}</span> bài học
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Số lượng hiển thị:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value))
+                    }}
+                    className="flex h-8 w-[70px] rounded-md border border-input bg-background px-2 py-1 text-xs font-bold ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    {page}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchLessons(currentPage + 1)}
-                  disabled={currentPage === totalPages || loading}
-                  className="rounded-lg h-9 font-bold px-3"
-                >
-                  Sau
-                </Button>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchLessons(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                    className="rounded-lg h-9 font-bold px-3"
+                  >
+                    Trước
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => fetchLessons(page)}
+                      disabled={loading}
+                      className={`rounded-lg size-9 font-bold ${page === currentPage ? "shadow-md shadow-primary/20" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchLessons(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                    className="rounded-lg h-9 font-bold px-3"
+                  >
+                    Sau
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
