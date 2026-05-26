@@ -35,7 +35,7 @@ interface Question {
   question: string
   type: "multiple_choice" | "essay"
   options: string[] | null
-  correct_answer: string | null
+  correct_answer: number | null  // index (0-3) of the correct option
   score: number
   order_number: number
   choice_ids?: (number | null)[]
@@ -92,9 +92,8 @@ export default function ExamQuestionsPage() {
             })
           : [null, null, null, null]
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const correctChoice = bq.choices?.find((c: any) => Number(c.choice_no) === Number(bq.correct_answer))
-        const correct_answer = correctChoice ? correctChoice.content : ""
+        // correct_answer stored as 0-based index of the correct option
+        const correct_answer = bq.correct_answer != null ? Number(bq.correct_answer) - 1 : null
 
         return {
           id: String(bq.id),
@@ -133,7 +132,7 @@ export default function ExamQuestionsPage() {
         question: "",
         type: "multiple_choice",
         options: ["", "", "", ""],
-        correct_answer: "",
+        correct_answer: null,
         score: 1,
         order_number: nextOrder,
       }
@@ -191,17 +190,10 @@ export default function ExamQuestionsPage() {
     setQuestions((prev) =>
       prev.map((q) => {
         if (q.id === qId && q.options) {
-          const oldVal = q.options[index]
           const newOptions = [...q.options]
           newOptions[index] = value
-
-          // If the edited option was the correct one, update the correct_answer value
-          const wasCorrect = q.correct_answer === oldVal
-          return {
-            ...q,
-            options: newOptions,
-            correct_answer: wasCorrect ? value : q.correct_answer
-          }
+          // correct_answer is stored as index, no need to update it when text changes
+          return { ...q, options: newOptions }
         }
         return q
       })
@@ -269,7 +261,7 @@ export default function ExamQuestionsPage() {
         toast.error(`Vui lòng điền đầy đủ đáp án`)
         return
       }
-      if (!q.correct_answer) {
+      if (q.correct_answer === null || q.correct_answer === undefined) {
         toast.error(`Vui lòng chọn đáp án đúng`)
         return
       }
@@ -336,13 +328,13 @@ export default function ExamQuestionsPage() {
         toast.error(`Vui lòng điền đầy đủ 4 đáp án cho câu hỏi số ${i + 1}`)
         return
       }
-      if (!q.correct_answer) {
+      if (q.correct_answer === null || q.correct_answer === undefined) {
         toast.error(`Vui lòng chọn đáp án đúng cho câu hỏi số ${i + 1}`)
         return
       }
 
-      const choiceIndex = q.options.indexOf(q.correct_answer)
-      const correct_answer = choiceIndex !== -1 ? choiceIndex + 1 : 1
+      // correct_answer is stored as 0-based index, API expects 1-based
+      const correct_answer = q.correct_answer + 1
 
       const mappedChoices = Array.from({ length: 4 }, (_, idx) => {
         const choiceContent = q.options?.[idx] || ""
@@ -525,14 +517,14 @@ export default function ExamQuestionsPage() {
                           {["A", "B", "C", "D"].map((label, idx) => (
                             <div
                               key={label}
-                              className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border text-sm ${q.correct_answer === q.options?.[idx] && q.options?.[idx] !== ""
+                              className={`flex items-center gap-2 p-1.5 px-3 rounded-lg border text-sm ${q.correct_answer === idx && q.options?.[idx] !== ""
                                 ? "border-primary/40 bg-primary/10"
                                 : "border-border/40 text-muted-foreground bg-muted/20"
                                 }`}
                             >
                               <span
                                 className={
-                                  q.correct_answer === q.options?.[idx] && q.options?.[idx] !== "" ? "font-bold text-primary" : "font-medium"
+                                  q.correct_answer === idx && q.options?.[idx] !== "" ? "font-bold text-primary" : "font-medium"
                                 }
                               >
                                 {label}.
@@ -652,22 +644,22 @@ export default function ExamQuestionsPage() {
                         {["A", "B", "C", "D"].map((label, idx) => (
                           <div
                             key={label}
-                            className={`flex items-center gap-2 p-2 px-3 rounded-lg border transition-all duration-300 ${q.correct_answer === q.options?.[idx] && q.options?.[idx] !== ""
+                            className={`flex items-center gap-2 p-2 px-3 rounded-lg border transition-all duration-300 ${q.correct_answer === idx && q.options?.[idx] !== ""
                               ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
                               : "border-border/60 bg-muted/10 hover:border-primary/20"
                               }`}
                           >
                             <Checkbox
                               id={`q-${q.id}-opt-${idx}`}
-                              checked={q.correct_answer === q.options?.[idx] && q.options?.[idx] !== ""}
+                              checked={q.correct_answer === idx && q.options?.[idx] !== ""}
                               onCheckedChange={() =>
-                                updateQuestion(q.id, { correct_answer: q.options?.[idx] || "" })
+                                updateQuestion(q.id, { correct_answer: idx })
                               }
                               className="size-4 rounded border-2"
                             />
                             <div className="flex-1 flex items-center gap-2">
                               <span
-                                className={`font-black text-sm transition-colors ${q.correct_answer === q.options?.[idx] && q.options?.[idx] !== ""
+                                className={`font-black text-sm transition-colors ${q.correct_answer === idx && q.options?.[idx] !== ""
                                   ? "text-primary"
                                   : "text-muted-foreground/60"
                                   }`}

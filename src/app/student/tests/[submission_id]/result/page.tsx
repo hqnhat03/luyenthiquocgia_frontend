@@ -279,7 +279,7 @@ export default function ExamResultPage() {
                                                     "flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold shrink-0",
                                                     labelStyle
                                                 )}>
-                                                    {String.fromCharCode(64 + choice.choice_no)}
+                                                    {String.fromCharCode(64 + Number(choice.choice_no))}
                                                 </div>
                                                 <span
                                                     className="text-sm flex-1"

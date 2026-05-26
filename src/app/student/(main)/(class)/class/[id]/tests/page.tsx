@@ -75,6 +75,42 @@ function TestDetailModal({ open, onOpenChange, testId, classId }: TestDetailModa
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const hasTimeLimit = () => {
+        const submissionStatus = Number(data?.test_info?.submission_status);
+        if (submissionStatus === 1 || submissionStatus === 2) return false;
+
+        // submission_status === 0: chưa làm bài
+        const durationSeconds = Number(data?.test_info?.duration ?? 0) * 60;
+        const endTime = data?.test_info?.end_time
+            ? new Date(data.test_info.end_time.replace(' ', 'T'))
+            : null;
+        const now = new Date();
+
+        const submissionList = data?.submission_list;
+        const hasSubmissions = submissionList && submissionList.length > 0;
+
+        if (!hasSubmissions) {
+            // TH1 & TH2: chưa có dữ liệu nộp
+            if (!endTime) return true; // không có end_time, dùng duration
+            const timeToEnd = (endTime.getTime() - now.getTime()) / 1000;
+            if (timeToEnd <= 0) return false; // đã hết hạn
+            // TH1: end_time - now > duration → có đủ duration để làm
+            // TH2: end_time - now < duration nhưng vẫn còn thời gian
+            return true;
+        } else {
+            // TH3: có submission nhưng chưa nộp (submit_time = null)
+            const createdAt = new Date(submissionList[0].created_at);
+            const elapsedSeconds = Math.floor((now.getTime() - createdAt.getTime()) / 1000);
+            const remainingFromStart = durationSeconds - elapsedSeconds;
+
+            if (endTime) {
+                const timeToEnd = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+                return Math.min(remainingFromStart, timeToEnd) > 0;
+            }
+            return remainingFromStart > 0;
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="min-w-4xl p-0 overflow-hidden bg-[#f1f5f9] border-none shadow-2xl rounded-xl [&>button]:hidden">
@@ -112,9 +148,9 @@ function TestDetailModal({ open, onOpenChange, testId, classId }: TestDetailModa
                                     <tr className="border-b border-slate-200/60">
                                         <td className="py-3.5 px-4 text-slate-500 font-medium text-right">Trạng thái</td>
                                         <td className="py-3.5 px-4">
-                                            {data.test_info.submission_status === 1 ? (
+                                            {Number(data.test_info.submission_status) === 1 ? (
                                                 <span className="text-blue-500 bg-[#eff6ff] px-3 py-1 rounded-md text-xs font-semibold border border-blue-100">Đã hoàn thành</span>
-                                            ) : data.test_info.submission_status === 2 ? (
+                                            ) : Number(data.test_info.submission_status) === 2 ? (
                                                 <span className="text-slate-500 bg-slate-50 px-3 py-1 rounded-md text-xs font-semibold border border-slate-200">Hết hạn</span>
                                             ) : (
                                                 <span className="text-amber-600 bg-[#fffbeb] px-3 py-1 rounded-md text-xs font-semibold border border-amber-100">Chưa làm</span>
@@ -154,7 +190,7 @@ function TestDetailModal({ open, onOpenChange, testId, classId }: TestDetailModa
                             </div>
                         )}
 
-                        {data.test_info.submission_status === 0 && (!data.test_info.end_time || !isAfter(new Date(), parseISO(data.test_info.end_time.replace(' ', 'T')))) && (
+                        {hasTimeLimit() && (!data.test_info.start_time || !isAfter(parseISO(data.test_info.start_time.replace(' ', 'T')), new Date())) && (!data.test_info.end_time || !isAfter(new Date(), parseISO(data.test_info.end_time.replace(' ', 'T')))) && (
                             <div className="flex justify-end pt-2">
                                 <Link href={`/student/exams/${data.test_info.id}`}>
                                     <Button className="bg-[#2563eb] hover:bg-blue-700 text-white rounded-lg px-8 h-10 shadow-md font-medium tracking-wide">Làm bài</Button>
@@ -223,7 +259,7 @@ export default function ExamsPage() {
     };
 
     const getStatus = (exam: Exam) => {
-        if (exam.submission_status === 1) {
+        if (Number(exam.submission_status) === 1) {
             return {
                 label: 'Đã hoàn thành',
                 variant: 'default' as const,
@@ -232,7 +268,7 @@ export default function ExamsPage() {
             };
         }
 
-        if (exam.submission_status === 2) {
+        if (Number(exam.submission_status) === 2) {
             return {
                 label: 'Hết hạn',
                 variant: 'outline' as const,

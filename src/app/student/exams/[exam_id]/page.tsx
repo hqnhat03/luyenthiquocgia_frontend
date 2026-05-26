@@ -46,12 +46,25 @@ interface TestInfo {
   title: string;
   teacher_first_name: string;
   teacher_last_name: string;
-  duration: number;
+  duration: string | number;
   start_time: string;
   end_time: string;
   status: number;
-  test_submission_id: number;
-  submission_status: number;
+  test_submission_id: string | number;
+  submission_status: string | number;
+  passing_score?: string | number;
+}
+
+interface SubmissionItem {
+  id: number;
+  test_id: string;
+  student_id: string;
+  score: string;
+  submit_time: string | null;
+  time_spent_in_seconds: string;
+  created_at: string;
+  correct_answers: string;
+  total_questions: string;
 }
 
 interface TestAttempt {
@@ -69,6 +82,7 @@ interface ExamResponse {
   data: {
     test_info: TestInfo;
     test_attempt: TestAttempt;
+    submission_list?: SubmissionItem[];
     question_list: Question[];
   };
 }
@@ -109,8 +123,48 @@ export default function ExamQuestionsPage() {
             setErrorMessage(innerData.message || 'Không thể truy cập bài kiểm tra.');
             return;
           }
-          setExamData(response.data.data);
-          setTimeLeft(response.data.data.test_info.duration * 60);
+          const data = response.data.data;
+          setExamData(data);
+
+          // Tính countdown timer theo quy luật mới
+          const durationSeconds = Number(data.test_info.duration) * 60;
+          const submissionList = data.submission_list;
+          const submissionStatus = Number(data.test_info.submission_status);
+
+          if (submissionStatus === 0) {
+            if (!submissionList || submissionList.length === 0) {
+              // Chưa làm bài, chưa có submission nào
+              // TH1 & TH2: tính dựa trên end_time
+              if (data.test_info.end_time) {
+                const endTime = new Date(data.test_info.end_time.replace(' ', 'T'));
+                const now = new Date();
+                const timeToEnd = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+                // TH1: end_time - now > duration → lấy duration
+                // TH2: end_time - now < duration → lấy end_time - now
+                setTimeLeft(timeToEnd > durationSeconds ? durationSeconds : Math.max(0, timeToEnd));
+              } else {
+                setTimeLeft(durationSeconds);
+              }
+            } else {
+              // TH3: chưa nộp nhưng có dữ liệu submission (đã bắt đầu làm)
+              const createdAt = new Date(submissionList[0].created_at);
+              const now = new Date();
+              const elapsedSeconds = Math.floor((now.getTime() - createdAt.getTime()) / 1000);
+              const remainingFromStart = durationSeconds - elapsedSeconds;
+
+              if (data.test_info.end_time) {
+                const endTime = new Date(data.test_info.end_time.replace(' ', 'T'));
+                const timeToEnd = Math.floor((endTime.getTime() - now.getTime()) / 1000);
+                // Lấy giá trị nhỏ hơn giữa thời gian còn lại từ lúc bắt đầu và thời gian đến end_time
+                setTimeLeft(Math.max(0, Math.min(remainingFromStart, timeToEnd)));
+              } else {
+                setTimeLeft(Math.max(0, remainingFromStart));
+              }
+            }
+          } else {
+            setTimeLeft(durationSeconds);
+          }
+
           const savedAnswers = localStorage.getItem(`exam_answers_${examId}`);
           if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
         } else {
@@ -298,11 +352,7 @@ export default function ExamQuestionsPage() {
               ))}
             </div>
 
-            <div className="flex justify-center items-center py-6">
-              <Button onClick={() => setIsSubmitDialogOpen(true)} className="h-12 rounded-xl px-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
-                Nộp bài
-              </Button>
-            </div>
+
           </div>
         </main>
 
