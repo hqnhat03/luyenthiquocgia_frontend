@@ -1,5 +1,6 @@
 "use client"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import api from "@/lib/axios"
 import { useAuthStore } from "@/store/auth-store"
 import { AxiosError } from "axios"
-import { ArrowLeft, Briefcase, Loader2, Save, User } from "lucide-react"
+import { ArrowLeft, Briefcase, Camera, Loader2, Save, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import * as React from "react"
@@ -21,34 +22,43 @@ export default function EditTeacherProfilePage() {
   const [updateLoading, setUpdateLoading] = React.useState(false)
 
   const [formData, setFormData] = React.useState({
-    name: "",
-    phone: "",
-    date_of_birth: "",
+    id: 0,
+    first_name: "",
+    last_name: "",
+    email: "",
+    gender: 1,
+    tel: "",
+    birth_date: "",
     address: "",
-    nationality: "",
-    expertise: "",
-    experience: "",
-    target_student: "",
-    bio: ""
+    nantionality: "",
+    experience_years: 0,
+    introduction: ""
   })
+  
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await api.get('/teacher/profile');
-        if (response.data.success) {
+        if (response.data?.status === 'success' || response.data?.success) {
           const profile = response.data.data;
           setFormData({
-            name: profile?.name || authUser?.name || "",
-            phone: profile?.phone || "",
-            date_of_birth: profile?.date_of_birth || "",
+            id: profile?.id || 0,
+            first_name: profile?.first_name || "",
+            last_name: profile?.last_name || "",
+            email: profile?.email || "",
+            gender: profile?.gender ?? 1,
+            tel: profile?.tel || "",
+            birth_date: profile?.birth_date || "",
             address: profile?.address || "",
-            nationality: profile?.nationality || "",
-            expertise: profile?.expertise || "",
-            experience: profile?.experience || "",
-            target_student: profile?.target_student || "",
-            bio: profile?.bio || "",
+            nantionality: profile?.nantionality || "",
+            experience_years: profile?.experience_years || 0,
+            introduction: profile?.introduction || "",
           });
+          setAvatarPreview(profile?.avatar_url || null);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -58,28 +68,67 @@ export default function EditTeacherProfilePage() {
       }
     };
     fetchProfile();
-  }, [authUser]);
+  }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setUpdateLoading(true)
     try {
-      const res = await api.put("/teacher/profile", formData)
+      const payload = new FormData()
+      payload.append('id', String(formData.id))
+      payload.append('first_name', formData.first_name)
+      payload.append('last_name', formData.last_name)
+      payload.append('email', formData.email)
+      payload.append('gender', String(formData.gender))
+      payload.append('tel', formData.tel)
+      if (formData.birth_date) payload.append('birth_date', formData.birth_date)
+      payload.append('address', formData.address)
+      payload.append('nationality', formData.nantionality) // mapped for validation logic
+      payload.append('nantionality', formData.nantionality) // mapped for service update
+      payload.append('experience_years', String(formData.experience_years))
+      payload.append('introduction', formData.introduction)
+      
+      if (avatarFile) {
+        payload.append('avatar_url', avatarFile)
+      }
+
+      const res = await api.post("/teacher/update-profile", payload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
 
       if (res.data?.success || res.status === 200 || res.status === 204) {
         toast.success("Cập nhật thông tin thành công!")
 
-        // Update name in authStore if it changed
-        if (formData.name !== authUser?.name) {
-          useAuthStore.getState().setAuth(
-            { ...authUser!, name: formData.name },
-            useAuthStore.getState().token!
-          );
+        // Refetch profile to get the updated avatar URL and data
+        try {
+          const profileResponse = await api.get('/teacher/profile');
+          if ((profileResponse.data?.status === 'success' || profileResponse.data?.success) && authUser) {
+            const updatedProfile = profileResponse.data.data;
+            const newName = `${updatedProfile.first_name} ${updatedProfile.last_name}`;
+            useAuthStore.getState().setAuth(
+              { ...authUser, name: newName, avatar: updatedProfile.avatar_url },
+              useAuthStore.getState().token!
+            );
+          }
+        } catch (error) {
+          console.error("Failed to refetch profile for store update", error);
         }
 
         router.push("/profile")
@@ -103,6 +152,12 @@ export default function EditTeacherProfilePage() {
       </div>
     )
   }
+
+  const getImageUrl = (url?: string | null) => {
+    if (!url) return "";
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    return `${process.env.NEXT_PUBLIC_API_IMAGE_URL || ''}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-8 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -133,25 +188,47 @@ export default function EditTeacherProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
+              <div className="flex flex-col items-center mb-6">
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={handleAvatarClick}
+                >
+                  <Avatar className="h-24 w-24 mb-2 border-4 border-background shadow-lg ring-2 ring-primary/20 transition-all group-hover:ring-primary/40">
+                    <AvatarImage src={getImageUrl(avatarPreview)} alt="Avatar" className="object-cover" />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                      {formData.first_name?.substring(0, 1).toUpperCase() || "T"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-x-0 top-0 bottom-2 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleAvatarClick} className="mt-2">
+                  Đổi ảnh đại diện
+                </Button>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Họ và tên <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="first_name">Họ và tên đệm <span className="text-red-500">*</span></Label>
                   <Input
-                    id="name"
-                    value={formData.name}
+                    id="first_name"
+                    value={formData.first_name}
                     onChange={handleChange}
-                    placeholder="Nhập họ và tên"
+                    placeholder="Ví dụ: Nguyễn Văn"
                     required
                     className="h-11 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Số điện thoại</Label>
+                  <Label htmlFor="last_name">Tên <span className="text-red-500">*</span></Label>
                   <Input
-                    id="phone"
-                    value={formData.phone}
+                    id="last_name"
+                    value={formData.last_name}
                     onChange={handleChange}
-                    placeholder="Nhập số điện thoại"
+                    placeholder="Ví dụ: A"
+                    required
                     className="h-11 rounded-lg"
                   />
                 </div>
@@ -159,25 +236,66 @@ export default function EditTeacherProfilePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Ngày sinh</Label>
+                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
                   <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
+                    id="email"
+                    type="email"
+                    value={formData.email}
                     onChange={handleChange}
+                    placeholder="Nhập email"
+                    required
                     className="h-11 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address">Địa chỉ liên hệ</Label>
+                  <Label htmlFor="tel">Số điện thoại <span className="text-red-500">*</span></Label>
                   <Input
-                    id="address"
-                    value={formData.address}
+                    id="tel"
+                    value={formData.tel}
                     onChange={handleChange}
-                    placeholder="Nhập địa chỉ của bạn"
+                    placeholder="Nhập số điện thoại"
+                    required
                     className="h-11 rounded-lg"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="birth_date">Ngày sinh <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="birth_date"
+                    type="date"
+                    value={formData.birth_date}
+                    onChange={handleChange}
+                    required
+                    className="h-11 rounded-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Giới tính <span className="text-red-500">*</span></Label>
+                  <select
+                    id="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value={1}>Nam</option>
+                    <option value={0}>Nữ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Địa chỉ liên hệ <span className="text-red-500">*</span></Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Nhập địa chỉ của bạn"
+                  required
+                  className="h-11 rounded-lg"
+                />
               </div>
             </CardContent>
           </Card>
@@ -197,74 +315,35 @@ export default function EditTeacherProfilePage() {
             <CardContent className="space-y-6 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="nationality">Quốc tịch</Label>
+                  <Label htmlFor="nantionality">Quốc tịch</Label>
                   <Input
-                    id="nationality"
-                    value={formData.nationality}
+                    id="nantionality"
+                    value={formData.nantionality}
                     onChange={handleChange}
                     placeholder="Ví dụ: Việt Nam, Hoa Kỳ..."
                     className="h-11 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="expertise">Chuyên môn</Label>
+                  <Label htmlFor="experience_years">Số năm kinh nghiệm <span className="text-red-500">*</span></Label>
                   <Input
-                    id="expertise"
-                    value={formData.expertise}
+                    id="experience_years"
+                    type="number"
+                    value={formData.experience_years}
                     onChange={handleChange}
-                    placeholder="Ví dụ: Tiếng Anh, Toán..."
+                    placeholder="Ví dụ: 5"
+                    required
+                    min="0"
                     className="h-11 rounded-lg"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="experience">Kinh nghiệm</Label>
-                  <Input
-                    id="experience"
-                    value={formData.experience}
-                    onChange={handleChange}
-                    placeholder="Ví dụ: 5 năm, 10 năm..."
-                    className="h-11 rounded-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Đối tượng giảng dạy</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={formData.target_student === 'student' ? 'default' : 'outline'}
-                      onClick={() => setFormData(prev => ({ ...prev, target_student: 'student' }))}
-                      className="flex-1 h-11 rounded-lg"
-                    >
-                      Học sinh
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={formData.target_student === 'employee' ? 'default' : 'outline'}
-                      onClick={() => setFormData(prev => ({ ...prev, target_student: 'employee' }))}
-                      className="flex-1 h-11 rounded-lg"
-                    >
-                      Người đi làm
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={formData.target_student === 'all' ? 'default' : 'outline'}
-                      onClick={() => setFormData(prev => ({ ...prev, target_student: 'all' }))}
-                      className="flex-1 h-11 rounded-lg"
-                    >
-                      Tất cả
-                    </Button>
-                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Tiểu sử / Giới thiệu</Label>
+                <Label htmlFor="introduction">Tiểu sử / Giới thiệu</Label>
                 <Textarea
-                  id="bio"
-                  value={formData.bio}
+                  id="introduction"
+                  value={formData.introduction}
                   onChange={handleChange}
                   placeholder="Giới thiệu ngắn gọn về bản thân, phương pháp giảng dạy..."
                   className="min-h-[120px] rounded-lg resize-y"

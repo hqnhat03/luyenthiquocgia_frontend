@@ -29,6 +29,7 @@ import {
 import { useParams } from "next/navigation"
 import * as React from "react"
 import { toast } from "sonner"
+import { EvaluationForm } from "./detail/_component/EvaluationForm"
 
 interface Schedule {
   id: string
@@ -105,6 +106,8 @@ export default function ClassDetailPage() {
   const [classDetail, setClassDetail] = React.useState<ClassDetail | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [evaluationStudent, setEvaluationStudent] = React.useState<Student | null>(null)
+  const [isEvaluationOpen, setIsEvaluationOpen] = React.useState(false)
 
   const filteredStudents = React.useMemo(() => {
     if (!classDetail?.students) return []
@@ -373,7 +376,8 @@ export default function ClassDetailPage() {
                               size="sm" 
                               className="rounded-lg h-9 px-4 font-bold border-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary transition-all duration-300 gap-1.5 shadow-sm"
                               onClick={() => {
-                                toast.info(`Chức năng đánh giá cuối khóa cho học sinh ${student.name || ""} đang được phát triển.`)
+                                setEvaluationStudent(student)
+                                setIsEvaluationOpen(true)
                               }}
                             >
                               <ClipboardCheck className="size-4" />
@@ -418,6 +422,16 @@ export default function ClassDetailPage() {
           </Card>
         </div>
       </div>
+
+      <EvaluationForm
+        student={evaluationStudent}
+        classId={Number(params.id)}
+        open={isEvaluationOpen}
+        onOpenChange={setIsEvaluationOpen}
+        onSuccess={() => {
+          // Optional: refresh student list or show a success indicator
+        }}
+      />
     </div>
   )
 }

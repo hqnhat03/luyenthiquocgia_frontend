@@ -45,6 +45,12 @@ export function TeacherHeader() {
     router.push("/login")
   }
 
+  const getImageUrl = (url?: string | null) => {
+    if (!url) return "";
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    return `${process.env.NEXT_PUBLIC_API_IMAGE_URL || ''}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border/40 bg-background/80 px-6 backdrop-blur-md transition-all duration-300">
       <div className="flex items-center gap-4">
@@ -69,7 +75,7 @@ export function TeacherHeader() {
           <DropdownMenuTrigger render={
             <Button variant="ghost" className="relative flex items-center gap-2 h-auto py-1.5 px-2 rounded-full border-2 border-primary/20 p-0 overflow-hidden hover:border-primary/40 transition-all">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&h=150&auto=format&fit=crop"} alt={user?.name || "Teacher"} />
+                <AvatarImage src={user?.avatar ? getImageUrl(user.avatar) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150&h=150&auto=format&fit=crop"} alt={user?.name || "Teacher"} className="object-cover" />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold">
                   {user?.name ? user.name.substring(0, 2).toUpperCase() : "T"}
                 </AvatarFallback>
