@@ -1,10 +1,10 @@
 "use client"
 
+import { studentAxios as api } from "@/api/student"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
-import { studentAxios as api } from "@/api/student"
 import { AxiosError } from "axios"
 import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -23,6 +23,8 @@ const initialFilters: FilterState = {
    keyword: "",
    level_id: [],
    subject_id: [],
+   price: [],
+   duration: [],
 }
 
 const getAvatarUrl = (url?: string | null) => {
@@ -66,7 +68,7 @@ function CoursesContent() {
     // URL params state
    const [filters, setFilters] = useState<FilterState>(initialFilters)
    const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1)
-   const [sortBy, setSortBy] = useState("newest")
+   const [perPage, setPerPage] = useState(Number(searchParams.get("per_page")) || 10)
    const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false)
 
    const fetchCourses = useCallback(async () => {
@@ -76,7 +78,7 @@ function CoursesContent() {
 
          const params = new URLSearchParams()
          params.append('page', currentPage.toString())
-         params.append('pagination', '10')
+         params.append('pagination', perPage.toString())
          params.append('target_student', '0')
 
          if (filters.keyword) {
@@ -95,8 +97,16 @@ function CoursesContent() {
             })
          }
 
-         if (sortBy !== "newest") {
-            params.append('sort', sortBy)
+         if (filters.price && filters.price.length > 0) {
+            filters.price.forEach((p) => {
+               params.append('price[]', p)
+            })
+         }
+
+         if (filters.duration && filters.duration.length > 0) {
+            filters.duration.forEach((d) => {
+               params.append('duration[]', d)
+            })
          }
 
          const response = await api.get("/courses", { params })
@@ -117,6 +127,8 @@ function CoursesContent() {
                   price: Number(course.price) || 0,
                   level_id: course.subject_level_id,
                   subject_id: course.subject_id || '',
+                  subject_name: course.subject_name || '',
+                  subject_level: course.subject_level || '',
                   is_published: true,
                   teachers: parsedTeachers,
                   lesson_count: course.total_lessons,
@@ -141,7 +153,12 @@ function CoursesContent() {
       } finally {
          setIsLoading(false)
       }
-   }, [filters, currentPage, sortBy])
+   }, [filters, currentPage, perPage])
+
+   // Reset to page 1 when perPage changes
+   useEffect(() => {
+      setCurrentPage(1)
+   }, [perPage])
 
    useEffect(() => {
       const page = Number(searchParams.get("page")) || 1
@@ -174,6 +191,17 @@ function CoursesContent() {
          router.push(`${pathname}?${params.toString()}`, { scroll: false })
          window.scrollTo({ top: 0, behavior: "smooth" })
       }
+   }
+
+   const handlePerPageChange = (value: string | null) => {
+      if (!value) return;
+      const newPerPage = Number(value)
+      setPerPage(newPerPage)
+      setCurrentPage(1)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("per_page", value)
+      params.delete("page")
+      router.push(`${pathname}?${params.toString()}`, { scroll: false })
    }
 
    return (
@@ -224,30 +252,31 @@ function CoursesContent() {
                         </SheetContent>
                      </Sheet>
 
-                     <div className="text-sm text-muted-foreground">
-                        {isLoading ? (
-                           <Skeleton className="h-5 w-32" />
-                        ) : (
-                           <span>Hiển thị <span className="font-semibold text-foreground">{meta?.total || 0}</span> khóa học</span>
-                        )}
-                     </div>
-                  </div>
+                      <div className="text-sm text-muted-foreground">
+                         {isLoading ? (
+                            <Skeleton className="h-5 w-32" />
+                         ) : (
+                            <span>Hiển thị <span className="font-semibold text-foreground">{meta?.total || 0}</span> khóa học</span>
+                         )}
+                      </div>
+                   </div>
 
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Sắp xếp theo</span>
-                     <Select value={sortBy} onValueChange={(v) => { setSortBy(v ?? "newest"); setCurrentPage(1) }}>
-                        <SelectTrigger className="w-full sm:w-[160px] bg-background">
-                           <SelectValue placeholder="Sắp xếp..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                           <SelectItem value="newest">Mới nhất</SelectItem>
-                           <SelectItem value="popular">Phổ biến nhất</SelectItem>
-                           <SelectItem value="price-asc">Giá: Thấp đến Cao</SelectItem>
-                           <SelectItem value="price-desc">Giá: Cao đến Thấp</SelectItem>
-                        </SelectContent>
-                     </Select>
-                  </div>
-               </div>
+                   {/* Per-page selector */}
+                   <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Hiển mỗi trang</span>
+                      <Select value={perPage.toString()} onValueChange={handlePerPageChange}>
+                         <SelectTrigger id="per-page-select" className="w-[80px] bg-background">
+                            <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                         </SelectContent>
+                      </Select>
+                   </div>
+                </div>
 
                {/* Content Grid */}
                {error && (
@@ -291,54 +320,62 @@ function CoursesContent() {
                         ))}
                      </div>
 
-                     {/* Pagination */}
-                     {meta && meta.last_page > 1 && (
-                        <div className="flex items-center justify-center gap-2 pt-6 border-t">
-                           <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handlePageChange(currentPage - 1)}
-                              disabled={currentPage === 1}
-                           >
-                              <ChevronLeft className="w-4 h-4" />
-                           </Button>
+                     {/* Pagination — always show when data exists */}
+                      {meta && (
+                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t">
+                            {/* Page info */}
+                            <p className="text-sm text-muted-foreground order-2 sm:order-1">
+                               Trang <span className="font-semibold text-foreground">{meta.current_page}</span>
+                               {" "}/ <span className="font-semibold text-foreground">{meta.last_page}</span>
+                               {" "}(&bull; {meta.total} kết quả)
+                            </p>
 
-                           <div className="flex items-center gap-1">
-                              {Array.from({ length: Math.min(5, meta.last_page) }).map((_, idx) => {
-                                 // Logic to handle centered pages
-                                 let pageNum = idx + 1;
-                                 if (meta.last_page > 5) {
-                                    if (currentPage > 3 && currentPage < meta.last_page - 1) {
-                                       pageNum = currentPage - 2 + idx;
-                                    } else if (currentPage >= meta.last_page - 1) {
-                                       pageNum = meta.last_page - 4 + idx;
-                                    }
-                                 }
+                            {/* Buttons */}
+                            <div className="flex items-center gap-2 order-1 sm:order-2">
+                               <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handlePageChange(currentPage - 1)}
+                                  disabled={currentPage === 1}
+                               >
+                                  <ChevronLeft className="w-4 h-4" />
+                               </Button>
 
-                                 return (
-                                    <Button
-                                       key={pageNum}
-                                       variant={currentPage === pageNum ? "default" : "outline"}
-                                       size="icon"
-                                       onClick={() => handlePageChange(pageNum)}
-                                       className={currentPage === pageNum ? "pointer-events-none" : ""}
-                                    >
-                                       {pageNum}
-                                    </Button>
-                                 )
-                              })}
-                           </div>
+                               <div className="flex items-center gap-1">
+                                  {Array.from({ length: Math.min(5, meta.last_page) }).map((_, idx) => {
+                                     let pageNum = idx + 1;
+                                     if (meta.last_page > 5) {
+                                        if (currentPage > 3 && currentPage < meta.last_page - 1) {
+                                           pageNum = currentPage - 2 + idx;
+                                        } else if (currentPage >= meta.last_page - 1) {
+                                           pageNum = meta.last_page - 4 + idx;
+                                        }
+                                     }
+                                     return (
+                                        <Button
+                                           key={pageNum}
+                                           variant={currentPage === pageNum ? "default" : "outline"}
+                                           size="icon"
+                                           onClick={() => handlePageChange(pageNum)}
+                                           className={currentPage === pageNum ? "pointer-events-none" : ""}
+                                        >
+                                           {pageNum}
+                                        </Button>
+                                     )
+                                  })}
+                               </div>
 
-                           <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handlePageChange(currentPage + 1)}
-                              disabled={currentPage === meta.last_page}
-                           >
-                              <ChevronRight className="w-4 h-4" />
-                           </Button>
-                        </div>
-                     )}
+                               <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handlePageChange(currentPage + 1)}
+                                  disabled={currentPage === meta.last_page}
+                               >
+                                  <ChevronRight className="w-4 h-4" />
+                               </Button>
+                            </div>
+                         </div>
+                      )}
                   </div>
                )}
             </main>

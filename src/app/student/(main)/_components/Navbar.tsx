@@ -51,7 +51,7 @@ export function Navbar() {
   const navLinks = [
     { name: 'Trang chủ', href: '/' },
     { name: 'Khóa học', href: '/courses' },
-    { name: 'Giới thiệu', href: '#' },
+    { name: 'Tin tức', href: '/news' },
     { name: 'Liên hệ', href: '#' },
   ];
 

@@ -17,9 +17,9 @@ export default function SecurityPage() {
   const [updateLoading, setUpdateLoading] = React.useState(false)
 
   const [formData, setFormData] = React.useState({
-    current_password: "",
-    new_password: "",
-    new_password_confirmation: ""
+    old_password: "",
+    password: "",
+    password_confirmation: ""
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,21 +30,20 @@ export default function SecurityPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (formData.new_password !== formData.new_password_confirmation) {
+    if (formData.password !== formData.password_confirmation) {
       toast.error("Mật khẩu xác nhận không khớp")
       return;
     }
 
     setUpdateLoading(true)
     try {
-      // Gọi API đổi mật khẩu (endpoint có thể thay đổi tùy backend thực tế)
-      const res = await api.post("/auth/change-password", formData)
+      const res = await api.post("/change-password", formData)
 
-      if (res.data?.success || res.status === 200 || res.status === 204) {
+      if (res.data?.success) {
         toast.success("Thay đổi mật khẩu thành công!")
         router.push("/profile")
       } else {
-        toast.error("Cập nhật thất bại. Vui lòng thử lại.")
+        toast.error(res.data?.message || "Cập nhật thất bại. Vui lòng thử lại.")
       }
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
@@ -82,12 +81,12 @@ export default function SecurityPage() {
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-4 md:w-2/3">
               <div className="space-y-2">
-                <Label htmlFor="current_password">Mật khẩu hiện tại <span className="text-red-500">*</span></Label>
+                <Label htmlFor="old_password">Mật khẩu hiện tại <span className="text-red-500">*</span></Label>
                 <div className="relative">
                   <Input
-                    id="current_password"
+                    id="old_password"
                     type="password"
-                    value={formData.current_password}
+                    value={formData.old_password}
                     onChange={handleChange}
                     placeholder="Nhập mật khẩu hiện tại"
                     required
@@ -98,16 +97,16 @@ export default function SecurityPage() {
               </div>
 
               <div className="space-y-2 pt-2">
-                <Label htmlFor="new_password">Mật khẩu mới <span className="text-red-500">*</span></Label>
+                <Label htmlFor="password">Mật khẩu mới <span className="text-red-500">*</span></Label>
                 <div className="relative">
                   <Input
-                    id="new_password"
+                    id="password"
                     type="password"
-                    value={formData.new_password}
+                    value={formData.password}
                     onChange={handleChange}
                     placeholder="Nhập mật khẩu mới"
                     required
-                    minLength={6}
+                    minLength={8}
                     className="h-11 rounded-xl pl-10"
                   />
                   <Shield className="h-4 w-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -115,16 +114,16 @@ export default function SecurityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="new_password_confirmation">Xác nhận mật khẩu mới <span className="text-red-500">*</span></Label>
+                <Label htmlFor="password_confirmation">Xác nhận mật khẩu mới <span className="text-red-500">*</span></Label>
                 <div className="relative">
                   <Input
-                    id="new_password_confirmation"
+                    id="password_confirmation"
                     type="password"
-                    value={formData.new_password_confirmation}
+                    value={formData.password_confirmation}
                     onChange={handleChange}
                     placeholder="Nhập lại mật khẩu mới"
                     required
-                    minLength={6}
+                    minLength={8}
                     className="h-11 rounded-xl pl-10"
                   />
                   <Shield className="h-4 w-4 text-slate-400 absolute left-3.5 top-3.5" />
