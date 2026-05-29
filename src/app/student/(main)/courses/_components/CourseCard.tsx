@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { BookOpen, Clock } from "lucide-react"
+import { BookOpen, Clock, GraduationCap } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -13,6 +13,8 @@ export interface Course {
   price: number
   level_id: string | number
   subject_id: string | number
+  subject_name?: string
+  subject_level?: string
   is_published: boolean
   teachers?: {
     id: number | string
@@ -47,6 +49,22 @@ export function CourseCard({ course }: { course: Course }) {
 
       <div className="flex flex-col sm:flex-row flex-grow p-4 sm:p-5">
         <div className="flex-grow pr-0 sm:pr-4">
+          {/* Subject badges */}
+          {(course.subject_name || course.subject_level) && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {course.subject_name && (
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">
+                  {course.subject_name}
+                </Badge>
+              )}
+              {course.subject_level && (
+                <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium">
+                  <GraduationCap className="w-3 h-3 mr-1" />
+                  {course.subject_level}
+                </Badge>
+              )}
+            </div>
+          )}
           <h3 className="font-semibold text-xl leading-tight line-clamp-2 mb-3 group-hover:text-primary transition-colors">{course.name}</h3>
 
           {course.teachers && course.teachers.length > 0 ? (

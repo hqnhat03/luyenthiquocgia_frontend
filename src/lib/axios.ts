@@ -131,8 +131,7 @@ api.interceptors.response.use(
           headers: {
             'Authorization': `Bearer ${document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1]}`,
             'Accept': 'application/json',
-          },
-          withCredentials: true // Đảm bảo gửi kèm cookie nếu backend yêu cầu
+          }
         });
 
         if (response.data.status === 'success') {

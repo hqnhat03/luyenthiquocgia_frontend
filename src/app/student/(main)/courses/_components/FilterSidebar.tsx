@@ -13,6 +13,8 @@ export interface FilterState {
   keyword: string
   level_id: string[]
   subject_id: string[]
+  price: string[]    // '0' = free, '1' = paid
+  duration: string[] // '1'=0-5h, '2'=5-10h, '3'=10-20h, '4'=20h+
 }
 
 interface FilterSidebarProps {
@@ -208,6 +210,58 @@ export function FilterSidebar({
         </div>
       </div>
 
+
+      {/* Price Filter */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">Học phí</h3>
+        <div className="space-y-3">
+          {[
+            { value: '0', label: 'Miễn phí' },
+            { value: '1', label: 'Có phí' },
+          ].map(({ value, label }) => (
+            <div key={value} className="flex items-center space-x-3">
+              <Checkbox
+                id={`price-${value}`}
+                checked={filters.price.includes(value)}
+                onCheckedChange={(checked) => handleToggleFilter('price', value, checked)}
+              />
+              <Label
+                htmlFor={`price-${value}`}
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                {label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Duration Filter */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">Thời lượng</h3>
+        <div className="space-y-3">
+          {[
+            { value: '1', label: 'Dưới 5 giờ' },
+            { value: '2', label: '5 - 10 giờ' },
+            { value: '3', label: '10 - 20 giờ' },
+            { value: '4', label: 'Trên 20 giờ' },
+          ].map(({ value, label }) => (
+            <div key={value} className="flex items-center space-x-3">
+              <Checkbox
+                id={`duration-${value}`}
+                checked={filters.duration.includes(value)}
+                onCheckedChange={(checked) => handleToggleFilter('duration', value, checked)}
+              />
+              <Label
+                htmlFor={`duration-${value}`}
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                {label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="pt-6 flex flex-col gap-3 border-t">
         <Button onClick={onReset} variant="outline" className="w-full font-medium">

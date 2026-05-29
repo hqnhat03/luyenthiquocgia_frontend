@@ -14,6 +14,9 @@ import { useRouter } from "next/navigation"
 import * as React from "react"
 import { toast } from "sonner"
 
+// type: 0 = Học sinh (STUDENT), 1 = Người đi làm (EMPLOYEE)
+// gender: 0 = Nữ, 1 = Nam
+
 export default function EditProfilePage() {
   const router = useRouter()
   const { user: authUser } = useAuthStore()
@@ -21,32 +24,36 @@ export default function EditProfilePage() {
   const [updateLoading, setUpdateLoading] = React.useState(false)
 
   const [formData, setFormData] = React.useState({
-    name: "",
-    phone: "",
-    date_of_birth: "",
+    first_name: "",
+    last_name: "",
+    tel: "",
+    birth_date: "",
     address: "",
-    student_type: "student",
-    school: "",
-    grade: "",
-    work: "",
-    position: ""
+    gender: 1,       // 0 = Nữ, 1 = Nam
+    type: 0,         // 0 = Học sinh, 1 = Người đi làm
+    school_name: "",
+    grade_level: "",
+    department: "",
+    position: "",
   })
 
   React.useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get('/detail');
+        const response = await api.get('/form-update');
         if (response.data.status === 'success' || response.data.data) {
           const profile = response.data.data;
           setFormData({
-            name: (profile?.first_name && profile?.last_name) ? `${profile.last_name} ${profile.first_name}`.trim() : (authUser?.name || ""),
-            phone: profile?.tel || "",
-            date_of_birth: profile?.birth_date || "",
+            first_name: profile?.first_name || "",
+            last_name: profile?.last_name || "",
+            tel: profile?.tel || "",
+            birth_date: profile?.birth_date || "",
             address: profile?.address || "",
-            student_type: profile?.type === 1 ? 'student' : (profile?.type === 2 ? 'employee' : 'student'),
-            school: profile?.school_name || "",
-            grade: profile?.grade_level?.toString() || "",
-            work: profile?.department || "",
+            gender: parseInt(profile?.gender ?? "1"),
+            type: parseInt(profile?.type ?? "0"),
+            school_name: profile?.school_name || "",
+            grade_level: profile?.grade_level?.toString() || "",
+            department: profile?.department || "",
             position: profile?.position || "",
           });
         }
@@ -58,7 +65,7 @@ export default function EditProfilePage() {
       }
     };
     fetchProfile();
-  }, [authUser]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -69,15 +76,30 @@ export default function EditProfilePage() {
     e.preventDefault()
     setUpdateLoading(true)
     try {
-      const res = await api.put("/profile", formData)
+      const payload = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        gender: formData.gender,
+        birth_date: formData.birth_date,
+        tel: formData.tel || null,
+        address: formData.address,
+        type: formData.type,
+        school_name: formData.type === 0 ? (formData.school_name || null) : null,
+        grade_level: formData.type === 0 ? (formData.grade_level ? parseInt(formData.grade_level) : null) : null,
+        department: formData.type === 1 ? (formData.department || null) : null,
+        position: formData.type === 1 ? (formData.position || null) : null,
+      }
 
-      if (res.data?.success || res.status === 200 || res.status === 204) {
+      const res = await api.post("/update", payload)
+
+      if (res.data?.status === 'success' || res.status === 200 || res.status === 204) {
         toast.success("Cập nhật thông tin thành công!")
 
-        // Update name in authStore if it changed
-        if (formData.name !== authUser?.name) {
+        // Update name in authStore
+        const fullName = `${formData.last_name} ${formData.first_name}`.trim()
+        if (fullName !== authUser?.name) {
           useAuthStore.getState().setAuth(
-            { ...authUser!, name: formData.name },
+            { ...authUser!, name: fullName },
             useAuthStore.getState().token!
           );
         }
@@ -88,7 +110,18 @@ export default function EditProfilePage() {
       }
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message || "Cập nhật thất bại. Vui lòng thử lại.")
+        const errData = error.response?.data
+        if (errData?.data && typeof errData.data === 'object') {
+          // Validation errors object
+          const firstError = Object.values(errData.data)[0]
+          if (Array.isArray(firstError)) {
+            toast.error(firstError[0] as string)
+          } else {
+            toast.error(errData.message || "Cập nhật thất bại. Vui lòng thử lại.")
+          }
+        } else {
+          toast.error(errData?.message || "Cập nhật thất bại. Vui lòng thử lại.")
+        }
       }
     } finally {
       setUpdateLoading(false)
@@ -132,74 +165,114 @@ export default function EditProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
+            {/* Họ & Tên */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Họ và tên <span className="text-red-500">*</span></Label>
+                <Label htmlFor="last_name">Họ <span className="text-red-500">*</span></Label>
                 <Input
-                  id="name"
-                  value={formData.name}
+                  id="last_name"
+                  value={formData.last_name}
                   onChange={handleChange}
-                  placeholder="Nhập họ và tên"
+                  placeholder="Nhập họ"
                   required
                   className="h-11 rounded-xl"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Số điện thoại</Label>
+                <Label htmlFor="first_name">Tên <span className="text-red-500">*</span></Label>
                 <Input
-                  id="phone"
-                  value={formData.phone}
+                  id="first_name"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  placeholder="Nhập tên"
+                  required
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
+
+            {/* Giới tính */}
+            <div className="space-y-3">
+              <Label>Giới tính <span className="text-red-500">*</span></Label>
+              <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-xl md:max-w-[300px]">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, gender: 1 }))}
+                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.gender === 1 ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                >
+                  Nam
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, gender: 0 }))}
+                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.gender === 0 ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                >
+                  Nữ
+                </button>
+              </div>
+            </div>
+
+            {/* Điện thoại & Ngày sinh */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="tel">Số điện thoại</Label>
+                <Input
+                  id="tel"
+                  value={formData.tel}
                   onChange={handleChange}
                   placeholder="Nhập số điện thoại"
                   className="h-11 rounded-xl"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Ngày sinh</Label>
+                <Label htmlFor="birth_date">Ngày sinh <span className="text-red-500">*</span></Label>
                 <Input
-                  id="date_of_birth"
+                  id="birth_date"
                   type="date"
-                  value={formData.date_of_birth}
+                  value={formData.birth_date}
                   onChange={handleChange}
-                  className="h-11 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Địa chỉ liên hệ</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Nhập địa chỉ của bạn"
+                  required
                   className="h-11 rounded-xl"
                 />
               </div>
             </div>
 
+            {/* Địa chỉ */}
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ liên hệ <span className="text-red-500">*</span></Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Nhập địa chỉ của bạn"
+                required
+                className="h-11 rounded-xl"
+              />
+            </div>
+
+            {/* Đối tượng */}
             <div className="space-y-3 pt-2">
               <Label>Đối tượng / Nghề nghiệp</Label>
               <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-xl md:max-w-[400px]">
                 <button
                   type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, student_type: 'student' }))}
-                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.student_type === 'student' ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                  onClick={() => setFormData(prev => ({ ...prev, type: 0 }))}
+                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.type === 0 ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
                 >
                   Học sinh
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, student_type: 'employee' }))}
-                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.student_type === 'employee' ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
+                  onClick={() => setFormData(prev => ({ ...prev, type: 1 }))}
+                  className={cn("px-4 py-2 text-sm font-medium rounded-lg transition-all", formData.type === 1 ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700")}
                 >
                   Người đi làm
                 </button>
               </div>
             </div>
 
-            {formData.student_type === 'student' && (
+            {/* Thông tin trường lớp (type = 0: Học sinh) */}
+            {formData.type === 0 && (
               <>
                 <div className="my-8 border-t"></div>
                 <div className="flex items-center gap-2 mb-4">
@@ -213,22 +286,23 @@ export default function EditProfilePage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="school">Trường học</Label>
+                    <Label htmlFor="school_name">Trường học</Label>
                     <Input
-                      id="school"
-                      value={formData.school}
+                      id="school_name"
+                      value={formData.school_name}
                       onChange={handleChange}
                       placeholder="Trường bạn đang học"
                       className="h-11 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="grade">Khối/Lớp</Label>
+                    <Label htmlFor="grade_level">Khối/Lớp</Label>
                     <Input
-                      id="grade"
-                      value={formData.grade}
+                      id="grade_level"
+                      type="number"
+                      value={formData.grade_level}
                       onChange={handleChange}
-                      placeholder="Lớp hoặc khối bạn đang theo học"
+                      placeholder="Khối hoặc lớp bạn đang học"
                       className="h-11 rounded-xl"
                     />
                   </div>
@@ -236,7 +310,8 @@ export default function EditProfilePage() {
               </>
             )}
 
-            {formData.student_type === 'employee' && (
+            {/* Thông tin công việc (type = 1: Người đi làm) */}
+            {formData.type === 1 && (
               <>
                 <div className="my-8 border-t"></div>
                 <div className="flex items-center gap-2 mb-4">
@@ -250,10 +325,10 @@ export default function EditProfilePage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="work">Nơi làm việc</Label>
+                    <Label htmlFor="department">Nơi làm việc</Label>
                     <Input
-                      id="work"
-                      value={formData.work}
+                      id="department"
+                      value={formData.department}
                       onChange={handleChange}
                       placeholder="Công ty/Tổ chức bạn đang làm việc"
                       className="h-11 rounded-xl"

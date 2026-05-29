@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { studentAxios as api } from "@/api/student"
 import { useAuthStore } from "@/store/auth-store"
-import { AxiosError } from "axios"
-import { Briefcase, Calendar, Camera, Globe, Loader2, Mail, MapPin, Phone, School, Shield, Trophy, User } from "lucide-react"
+import { Briefcase, Calendar, Globe, Mail, MapPin, Phone, School, Shield, Trophy, User } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
-import { toast } from "sonner"
 
 interface StudentProfile {
   first_name: string;
@@ -32,8 +30,6 @@ export default function ProfilePage() {
   const { user: authUser } = useAuthStore()
   const [profile, setProfile] = React.useState<StudentProfile | null>(null)
   const [loading, setLoading] = React.useState(true)
-  const [isUploading, setIsUploading] = React.useState(false)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     const fetchProfile = async () => {
@@ -50,51 +46,6 @@ export default function ProfilePage() {
     };
     fetchProfile();
   }, []);
-
-  const handleAvatarClick = () => {
-    if (isUploading) return
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsUploading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("path", "avatars")
-
-    try {
-      const res = await api.post("/storage/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      const url = res.data?.data?.public_url || res.data?.data?.url || res.data?.url
-      if (url) {
-        // Cập nhật lên backend
-        await api.put("/profile", { avatar_url: url })
-
-        setProfile(prev => prev ? { ...prev, avatar_url: url } : null)
-        // Also update authUser store locally to reflect immediately across the app
-        if (authUser) {
-          useAuthStore.getState().setAuth(
-            { ...authUser, avatar: url },
-            useAuthStore.getState().token!
-          );
-        }
-        toast.success("Thay đổi ảnh đại diện thành công!")
-      } else {
-        toast.error("Không nhận được URL ảnh từ server")
-      }
-    } catch (err: unknown) {
-      if (err instanceof AxiosError) {
-        toast.error(err.response?.data?.message || "Tải ảnh lên thất bại")
-      }
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ""
-    }
-  }
 
   if (!authUser || loading) {
     return (
@@ -133,24 +84,12 @@ export default function ProfilePage() {
         {/* Left Column: Avatar & Basic Info */}
         <Card className="col-span-1 border-none shadow-sm bg-white hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-col items-center text-center pb-2 relative">
-            <div
-              className="relative group cursor-pointer"
-              onClick={handleAvatarClick}
-            >
-              <Avatar className="h-24 w-24 mb-4 border-4 border-background shadow-lg ring-2 ring-primary/20 transition-all group-hover:ring-primary/40">
-                <AvatarImage src={displayAvatar || ""} alt={displayName} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
-                  {displayName?.substring(0, 2).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-x-0 top-0 bottom-4 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                {isUploading ? (
-                  <Loader2 className="h-8 w-8 text-white animate-spin" />
-                ) : (
-                  <Camera className="h-8 w-8 text-white" />
-                )}
-              </div>
-            </div>
+            <Avatar className="h-24 w-24 mb-4 border-4 border-background shadow-lg ring-2 ring-primary/20">
+              <AvatarImage src={displayAvatar || ""} alt={displayName} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                {displayName?.substring(0, 2).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
 
             <CardTitle className="text-xl font-bold">{displayName}</CardTitle>
             <CardDescription className="text-sm font-semibold mt-1 uppercase tracking-wider text-muted-foreground">
@@ -205,16 +144,6 @@ export default function ProfilePage() {
                 </>
               )}
             </div>
-
-            <Button
-              className="w-full mt-6 font-bold rounded-xl"
-              variant="outline"
-              onClick={handleAvatarClick}
-              disabled={isUploading}
-            >
-              {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tải lên...</> : "Đổi ảnh đại diện"}
-            </Button>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
           </CardContent>
         </Card>
 
@@ -254,28 +183,11 @@ export default function ProfilePage() {
             </Card>
           </Link>
 
-          <Card className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group">
-            <CardHeader className="flex flex-row items-center gap-4 py-5">
-              <div className="p-3 rounded-xl bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                <Globe className="size-5 text-slate-500 group-hover:text-primary" />
-              </div>
-              <div className="flex-1">
-                <CardTitle className="text-base font-bold">Ngôn ngữ & Khu vực</CardTitle>
-                <CardDescription className="text-sm mt-1">Tùy chỉnh ngôn ngữ và định dạng thời gian.</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="font-bold text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                Thay đổi
-              </Button>
-            </CardHeader>
-          </Card>
+
         </div>
       </div>
 
-      <div className="flex justify-end pt-4">
-        <Button className="h-11 rounded-xl px-8 shadow-lg shadow-primary/20 font-bold active:scale-95 transition-all">
-          Lưu tất cả thay đổi
-        </Button>
-      </div>
+
 
     </div>
   )

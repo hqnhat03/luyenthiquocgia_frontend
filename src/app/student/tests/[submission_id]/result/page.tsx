@@ -30,29 +30,29 @@ interface Choice {
 
 interface TestQuestion {
     id: number;
-    test_id: number;
-    question_no: number;
+    test_id: string | number;
+    question_no: string | number;
     content: string;
-    correct_answer: number;
+    correct_answer: string | number;
     created_at: string;
     updated_at: string;
-    created_by: number;
-    updated_by: number;
-    student_choice_id: number | null;
-    student_result: number; // 1 = correct, 0 = incorrect
+    created_by: string | number;
+    updated_by: string | number;
+    student_choice_id: string | number | null;
+    student_result: string | number; // 1 = correct, 0 = incorrect
     choices: Choice[];
 }
 
 interface SubmissionAnswer {
     id: number;
-    submission_id: number;
-    question_id: number;
-    choice_id: number;
-    result: number;
+    submission_id: string | number;
+    question_id: string | number;
+    choice_id: string | number;
+    result: string | number;
     created_at: string;
     updated_at: string;
-    created_by: number;
-    updated_by: number;
+    created_by: string | number;
+    updated_by: string | number;
 }
 
 interface ResultData {
@@ -149,7 +149,7 @@ export default function ExamResultPage() {
     }
 
     const totalQuestions = resultData.test_questions.length;
-    const correctCount = resultData.test_questions.filter(q => q.student_result === 1).length;
+    const correctCount = resultData.test_questions.filter(q => Number(q.student_result) === 1).length;
     const incorrectCount = totalQuestions - correctCount;
 
     return (
@@ -202,7 +202,7 @@ export default function ExamResultPage() {
                 {/* Questions list */}
                 <div className="flex-1 min-w-0 space-y-4 pb-12">
                     {resultData.test_questions.map((question, index) => {
-                        const isCorrect = question.student_result === 1;
+                        const isCorrect = Number(question.student_result) === 1;
 
                         return (
                             <div
@@ -246,8 +246,8 @@ export default function ExamResultPage() {
                                 {/* Choices — horizontal wrap */}
                                 <div className="p-5 pt-4 flex flex-wrap gap-2.5">
                                     {question.choices.map((choice) => {
-                                        const isStudentPick = choice.id === question.student_choice_id;
-                                        const isCorrectAnswer = choice.choice_no === question.correct_answer;
+                                        const isStudentPick = Number(choice.id) === Number(question.student_choice_id);
+                                        const isCorrectAnswer = Number(choice.choice_no) === Number(question.correct_answer);
 
                                         let choiceStyle = "bg-slate-50 border-slate-200 text-slate-700";
                                         let labelStyle = "bg-slate-200 text-slate-600";
@@ -315,7 +315,7 @@ export default function ExamResultPage() {
                         </div>
                         <div className="p-3 flex flex-wrap gap-1.5 max-h-[calc(100vh-14rem)] overflow-y-auto">
                             {resultData.test_questions.map((question, index) => {
-                                const isCorrect = question.student_result === 1;
+                                const isCorrect = Number(question.student_result) === 1;
                                 return (
                                     <button
                                         key={question.id}
