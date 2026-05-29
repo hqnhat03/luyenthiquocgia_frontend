@@ -51,6 +51,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 api.interceptors.response.use(
   (response) => {
+    // Không bắt 401 cho api login vì nó trả về 200 OK kèm error message trong body
+    if (response.config.url?.includes("/login")) {
+      return response;
+    }
+
     // Catch successful HTTP requests that have a 401 logical error
     if (response.data && response.data.code === 401 && response.data.message === 'Thông tin đăng nhập không hợp lệ.') {
       return Promise.reject({
@@ -67,6 +72,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Không xử lý refresh token cho request login
+    if (originalRequest?.url?.includes("/login")) {
+      return Promise.reject(error);
+    }
 
     // Handle 401 Unauthorized: Token might be expired
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -142,6 +152,8 @@ api.interceptors.response.use(
           processQueue(null, access_token);
           
           return api(originalRequest);
+        } else {
+          throw new Error(response.data?.message || "Refresh token failed");
         }
       } catch (refreshError) {
         processQueue(refreshError, null);

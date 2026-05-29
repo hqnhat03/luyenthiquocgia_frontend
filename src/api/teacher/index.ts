@@ -48,6 +48,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // Response interceptor 1: Bắt lỗi 401 code từ body
 teacherAxios.interceptors.response.use(
   (response) => {
+    // Không bắt 401 cho api login vì nó trả về 200 OK kèm error message trong body
+    if (response.config.url?.includes("/login")) {
+      return response;
+    }
+
     if (
       response.data &&
       response.data.code === 401 &&
@@ -68,6 +73,11 @@ teacherAxios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Không xử lý refresh token cho request login
+    if (originalRequest?.url?.includes("/login")) {
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -122,6 +132,8 @@ teacherAxios.interceptors.response.use(
           processQueue(null, access_token);
 
           return teacherAxios(originalRequest);
+        } else {
+          throw new Error(response.data?.message || "Refresh token failed");
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
